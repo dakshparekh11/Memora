@@ -304,20 +304,47 @@ a:hover{text-decoration:underline;}
 .topic-bar-fill{height:100%;border-radius:var(--r-full);transition:width .5s ease;}
 .topic-count{font-size:11.5px;color:var(--text-3);min-width:55px;text-align:right;}
 
-/* Heatmap */
-.heatmap-wrap{overflow:auto;padding-bottom:var(--space-1);}
-.heatmap-grid{display:flex;gap:3px;width:max-content;}
-.heatmap-col{display:flex;flex-direction:column;gap:3px;}
-.heatmap-cell{
-  width:13px;height:13px;border-radius:3px;
-  background:var(--border);flex-shrink:0;cursor:default;
-  transition:opacity .1s;
+/* ── YEARLY CALENDAR HEATMAP ─────────────────────────────── */
+.hm-controls{display:flex;gap:var(--space-2);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;}
+.hm-select{
+  border:1.5px solid var(--border-strong);border-radius:var(--r-md);
+  padding:6px 10px;font-size:12.5px;background:var(--panel-bg);
+  color:var(--text);outline:none;cursor:pointer;min-height:36px;
+  transition:border-color .15s;font-family:inherit;
 }
-.heatmap-cell:hover{opacity:.7;}
-.heatmap-labels{
-  display:flex;justify-content:space-between;
-  font-size:10.5px;color:var(--text-3);margin-top:var(--space-1);
+.hm-select:focus{border-color:var(--accent);}
+.hm-stat-line{font-size:11.5px;color:var(--text-3);margin-left:auto;white-space:nowrap;}
+.hm-outer{display:flex;align-items:flex-start;}
+.hm-dow-col{
+  display:flex;flex-direction:column;gap:3px;
+  flex-shrink:0;margin-right:5px;padding-top:22px;
 }
+.hm-dow-label{
+  width:10px;height:12px;line-height:12px;
+  font-size:9px;color:var(--text-3);font-weight:700;text-align:right;
+}
+.hm-months-scroll{overflow-x:auto;padding-bottom:var(--space-2);}
+.hm-months-row{display:flex;gap:5px;width:max-content;}
+.hm-month{display:flex;flex-direction:column;flex-shrink:0;}
+.hm-month-label{
+  height:18px;line-height:18px;font-size:10px;
+  color:var(--text-3);font-weight:700;
+  margin-bottom:2px;padding-left:1px;
+}
+.hm-month-cols{display:flex;gap:3px;}
+.hm-col{display:flex;flex-direction:column;gap:3px;}
+.hm-cell{
+  width:12px;height:12px;border-radius:2px;
+  flex-shrink:0;cursor:default;transition:opacity .12s;
+}
+.hm-cell:not(.hm-empty):not(.hm-future):hover{opacity:.65;}
+.hm-empty{background:transparent!important;}
+.hm-future{background:var(--border)!important;opacity:.25!important;cursor:default;}
+.hm-legend{
+  display:flex;align-items:center;gap:4px;
+  margin-top:var(--space-2);font-size:10.5px;color:var(--text-3);
+}
+.hm-legend-cell{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
 
 /* ── REVIEW OVERLAY ──────────────────────────────────────── */
 .review-overlay{
@@ -1562,8 +1589,8 @@ function renderDashboard(c){
     +_sc(state.cards.length,'Total Cards','in your deck','#8B5CF6')
     +'</div>'
     +'<div class="section-title">By Topic</div>'+topicHtml
-    +'<div class="section-title" style="margin-top:28px">Study Activity — 18 weeks</div>'
-    +_renderHeatmap();
+    +'<div class="section-title" style="margin-top:28px">Study Activity</div>'
+    +_renderHeatmapSection('_dashHmGrid');
 }
 
 function _sc(val,label,sub,accent){
@@ -1584,27 +1611,123 @@ function _calcStreak(){
   while(days.has(d)){streak++;const p=new Date(d+'T00:00:00');p.setDate(p.getDate()-1);d=isoDate(p);}
   return streak;
 }
-function _renderHeatmap(){
-  const weeks=18,today=new Date(),dow=today.getDay();
-  const countMap={};
-  state.sessions.forEach(s=>{countMap[s.date]=(countMap[s.date]||0)+(s.cardsReviewed||0);});
-  const maxCount=Math.max(...Object.values(countMap),1);
-  let cols='';
-  for(let w=weeks-1;w>=0;w--){
-    let col='';
-    for(let d=0;d<7;d++){
-      const daysAgo=(w*7)+(dow===0?6:dow-1)-d;
-      if(daysAgo<0){col+='<div class="heatmap-cell" style="visibility:hidden"></div>';continue;}
-      const dt=new Date(today);dt.setDate(today.getDate()-daysAgo);
-      if(dt>today){col+='<div class="heatmap-cell" style="visibility:hidden"></div>';continue;}
-      const ds=isoDate(dt),cnt=countMap[ds]||0;
-      const bg=cnt>0?'rgba(var(--accent-rgb),'+Math.max(.2,Math.min(1,cnt/maxCount))+')':'var(--border)';
-      col+='<div class="heatmap-cell" style="background:'+bg+'" title="'+esc(ds)+': '+cnt+' cards"></div>';
-    }
-    cols+='<div class="heatmap-col">'+col+'</div>';
+// ── YEARLY CALENDAR HEATMAP ───────────────────────────────────
+let _hmYear=new Date().getFullYear();
+let _hmView='reviewed'; // 'reviewed' | 'created'
+
+function _getAvailableYears(){
+  const years=new Set([new Date().getFullYear()]);
+  state.sessions.forEach(s=>{if(s.date)years.add(parseInt(s.date.slice(0,4)));});
+  state.cards.forEach(c=>{if(c.createdAt)years.add(parseInt(c.createdAt.slice(0,4)));});
+  return[...years].sort((a,b)=>b-a);
+}
+
+function _buildHeatmapGrid(){
+  const year=_hmYear,view=_hmView,today=todayISO();
+  // Build data map for selected year & view
+  const dataMap={};
+  if(view==='reviewed'){
+    state.sessions.forEach(s=>{
+      if(s.date&&s.date.startsWith(String(year)))
+        dataMap[s.date]=(dataMap[s.date]||0)+(s.cardsReviewed||0);
+    });
+  }else{
+    state.cards.forEach(c=>{
+      if(c.createdAt&&c.createdAt.startsWith(String(year)))
+        dataMap[c.createdAt]=(dataMap[c.createdAt]||0)+1;
+    });
   }
-  return'<div class="heatmap-wrap"><div class="heatmap-grid">'+cols+'</div>'
-    +'<div class="heatmap-labels"><span>18 weeks ago</span><span>Today</span></div></div>';
+  const maxVal=Math.max(...Object.values(dataMap),1);
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let html='<div class="hm-months-row">';
+  for(let m=0;m<12;m++){
+    const daysInMonth=new Date(year,m+1,0).getDate();
+    const startDow=(new Date(year,m,1).getDay()+6)%7; // Mon=0 … Sun=6
+    const cols=Math.ceil((startDow+daysInMonth)/7);
+    let monthCols='';
+    for(let col=0;col<cols;col++){
+      let cells='';
+      for(let row=0;row<7;row++){
+        const dayNum=(col*7+row)-startDow+1;
+        if(dayNum<1||dayNum>daysInMonth){
+          cells+='<div class="hm-cell hm-empty"></div>';
+        }else{
+          const ds=year+'-'+String(m+1).padStart(2,'0')+'-'+String(dayNum).padStart(2,'0');
+          if(ds>today){
+            cells+='<div class="hm-cell hm-future" title="'+esc(ds)+'"></div>';
+          }else{
+            const cnt=dataMap[ds]||0;
+            const intensity=cnt>0?Math.max(0.15,Math.min(1,cnt/maxVal)):0;
+            const bg=cnt>0?'rgba(var(--accent-rgb),'+intensity.toFixed(2)+')':'var(--border)';
+            const lbl=view==='reviewed'
+              ?(cnt===0?'No cards reviewed':cnt+' card'+(cnt!==1?'s':'')+' reviewed')
+              :(cnt===0?'No cards created':cnt+' card'+(cnt!==1?'s':'')+' created');
+            cells+='<div class="hm-cell" style="background:'+bg+'" title="'+esc(ds)+'  ·  '+esc(lbl)+'"></div>';
+          }
+        }
+      }
+      monthCols+='<div class="hm-col">'+cells+'</div>';
+    }
+    html+='<div class="hm-month">'
+      +'<div class="hm-month-label">'+MONTHS[m]+'</div>'
+      +'<div class="hm-month-cols">'+monthCols+'</div>'
+      +'</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function _hmStatLine(){
+  const year=_hmYear,view=_hmView;
+  let total=0;
+  if(view==='reviewed'){
+    state.sessions
+      .filter(s=>s.date&&s.date.startsWith(String(year)))
+      .forEach(s=>total+=(s.cardsReviewed||0));
+  }else{
+    total=state.cards.filter(c=>c.createdAt&&c.createdAt.startsWith(String(year))).length;
+  }
+  return total.toLocaleString()+' '+(view==='reviewed'?'cards reviewed':'cards created')+' in '+year;
+}
+
+function _hmChange(){
+  const ySel=document.getElementById('_hmYearSel');
+  const vSel=document.getElementById('_hmViewSel');
+  if(ySel)_hmYear=parseInt(ySel.value);
+  if(vSel)_hmView=vSel.value;
+  // Refresh grid + stat line in whichever view is on screen (dashboard or progress)
+  ['_dashHmGrid','_progHmGrid'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML=_buildHeatmapGrid();
+  });
+  document.querySelectorAll('._hmStatLine').forEach(el=>el.textContent=_hmStatLine());
+}
+
+function _renderHeatmapSection(gridId){
+  const years=_getAvailableYears();
+  const legendStops=[0,.18,.36,.54,.72,.9,1];
+  return'<div class="hm-controls">'
+    +'<select class="hm-select" id="_hmYearSel" aria-label="Select year" onchange="_hmChange()">'
+    +years.map(y=>'<option value="'+y+'"'+(y===_hmYear?' selected':'')+'>'+y+'</option>').join('')
+    +'</select>'
+    +'<select class="hm-select" id="_hmViewSel" aria-label="Select activity type" onchange="_hmChange()">'
+    +'<option value="reviewed"'+(_hmView==='reviewed'?' selected':'')+'>Cards Reviewed</option>'
+    +'<option value="created"'+(_hmView==='created'?' selected':'')+'>Cards Created</option>'
+    +'</select>'
+    +'<span class="_hmStatLine hm-stat-line">'+_hmStatLine()+'</span>'
+    +'</div>'
+    +'<div class="hm-outer">'
+    +'<div class="hm-dow-col">'
+    +['M','T','W','T','F','S','S'].map(d=>'<div class="hm-dow-label">'+d+'</div>').join('')
+    +'</div>'
+    +'<div class="hm-months-scroll"><div id="'+gridId+'">'+_buildHeatmapGrid()+'</div></div>'
+    +'</div>'
+    +'<div class="hm-legend">'
+    +'<span>Less</span>'
+    +legendStops.map(i=>'<div class="hm-legend-cell" style="background:'
+      +(i===0?'var(--border)':'rgba(var(--accent-rgb),'+i+')')+'"></div>').join('')
+    +'<span>More</span>'
+    +'</div>';
 }
 
 // ── REVIEW SELECT ─────────────────────────────────────────────
@@ -1843,7 +1966,7 @@ function renderProgress(c){
       +'</div>'
     ).join(''):'<p style="color:var(--text-3);font-size:13px;padding:12px 0">Add cards with topics to see retention stats.</p>')
 
-    +'<div class="section-title" style="margin-top:28px">Study Activity</div>'+_renderHeatmap()
+    +'<div class="section-title" style="margin-top:28px">Study Activity</div>'+_renderHeatmapSection('_progHmGrid')
 
     +'<div class="section-title" style="margin-top:28px">Recent Sessions</div>'
     +(recentSessions.length?recentSessions.map(s=>{
