@@ -1,8 +1,8 @@
 # Memora
 
 A personal spaced-repetition (SRS) web app for CFA exam study.
-Single-file PWA with Firebase sync, IndexedDB offline storage,
-SM-2 algorithm, and a backup system identical to Logwise.
+Single-file PWA · Firebase sync · IndexedDB offline storage ·
+SM-2 algorithm · Plus Jakarta Sans design system · Inline SVG icon set.
 
 Hosted for free on **GitHub Pages** — no server needed.
 
@@ -25,7 +25,7 @@ Hosted for free on **GitHub Pages** — no server needed.
 | **Daily Limits** | Configurable new-cards/day and review-cards/day caps |
 | **CFA Topic Tree** | Full L1 / L2 / L3 pre-loaded with official exam weights |
 | **Image Support** | Attach yield curves, payoff diagrams, option graphs |
-| **Dashboard** | Due count · New cards · Streak 🔥 · 18-week heatmap · Topic bars |
+| **Dashboard** | Due count · New cards · Streak · Yearly calendar heatmap · Topic bars |
 | **Progress View** | Retention by topic · Avg retention · Study time · Session history |
 | **Delete Session** | Remove any mistakenly logged session from Recent Sessions |
 | **Push Notifications** | Daily study reminder at your chosen time |
@@ -36,6 +36,130 @@ Hosted for free on **GitHub Pages** — no server needed.
 | **6 Colour Themes** | Deep Focus · Botanical Zen · Sunrise · Vintage · Dreamscape · Night Owl |
 | **Dark Mode** | Full dark mode across all themes |
 | **API Key Security** | Firebase keys in gitignored `config.js` · Never in GitHub |
+
+---
+
+## UI Design
+
+Memora uses a hand-crafted design system — no UI framework — built
+entirely in CSS custom properties so every element adapts automatically
+across all six themes and dark mode.
+
+### Typography
+
+**Plus Jakarta Sans** (Google Fonts, weights 400–800) is used throughout.
+Chosen over Inter for its slightly more distinctive letterforms while
+remaining fully neutral and legible at study-tool sizes. The type scale
+runs from 11 px sidebar labels up to 28 px stat values, with
+`letter-spacing: -0.04em` on large numerals for a tight, modern feel.
+
+### Icon System
+
+All icons are inline SVG (Heroicons-style, 17–18 px, `stroke-width: 2`).
+No icon font, no emoji, no external icon library. This means icons:
+
+- Render identically on every OS and browser (no font-dependency quirks)
+- Inherit `currentColor` so they adapt to theme and dark mode automatically
+- Add zero network requests
+
+Icons are used in: sidebar navigation, sidebar header controls
+(theme picker, dark mode toggle), mode selection cards (SRS / Cram / Weak),
+stat cards, browse card action buttons (edit, delete, star), session summary,
+hint and notes fields, offline banner, and the auth screen logo mark.
+
+### Colour Themes
+
+Six themes ship out of the box. Each has a light and dark variant,
+computed at runtime via CSS custom properties — no separate stylesheets.
+
+| Theme | Character |
+|---|---|
+| Deep Focus | Deep navy · clean blue accent |
+| Botanical Zen | Sage green · earthy warmth |
+| Sunrise Momentum | Warm amber · energetic orange |
+| Vintage Paper | Sepia tones · ink accent |
+| Creative Dreamscape | Soft violet · purple gradient |
+| Night Owl | Charcoal · electric teal |
+
+### Scrollbar
+
+A custom 5 px pill-shaped scrollbar replaces the browser default.
+The thumb uses `var(--border-strong)` so it matches the active theme;
+the track is transparent. Applied globally — sidebar, main scroll area,
+modals, and the review overlay all use it. Firefox `scrollbar-width: thin`
+is also set.
+
+### Stat Cards
+
+Each dashboard stat card shows:
+- Label (12 px, sentence case) and a contextual SVG icon in the top row
+- Large value (28 px, `font-weight: 700`, accent colour)
+- Subtitle below
+
+The old 3 px gradient top-stripe pattern was removed in favour of this
+icon-led layout, which gives each card a clearer identity at a glance.
+
+### Rating Buttons
+
+The four SRS rating buttons (Again / Hard / Good / Easy) are full-radius
+pills (`border-radius: 999px`) with colour-coded backgrounds that are
+more saturated in dark mode. Labels and interval previews are plain text —
+no emoji.
+
+### Heatmap
+
+The dashboard heatmap shows a full 12-month calendar grid with:
+- Year and view (Cards Reviewed / Cards Created) dropdowns
+- Day-of-week labels (M–S) on the left
+- Month labels above each column group
+- Hover tooltips showing the date and card count
+- A colour legend (Less → More)
+- A live summary line, e.g. "847 cards reviewed in 2025"
+
+---
+
+## Changelog
+
+### v1.2 — UI Overhaul
+- **Font:** replaced Inter with Plus Jakarta Sans
+- **Icons:** replaced all emoji in the UI with inline SVG icons — nav,
+  header controls, mode cards, stat cards, browse actions, empty states,
+  hint/notes fields, session summary, image upload, CSV import, offline
+  banner, auth logo, and every status message
+- **Nav:** removed `border-left` active indicator; active item is now
+  a clean pill background
+- **Stat cards:** removed gradient top-stripe; added per-card SVG icon
+  with accent-coloured background; redesigned value hierarchy
+- **Rating buttons:** changed from rounded-rectangle to full pill shape;
+  removed emoji labels
+- **Typography:** removed `text-transform: uppercase` from section titles,
+  stat card labels, nav labels, backup labels, and settings section titles;
+  softened letter-spacing throughout
+- **Scrollbar:** custom 5 px themed scrollbar replacing the browser default
+- **Review card:** increased inner padding to 36 px; accent divider
+  thickened to 3 px
+- **Dark mode:** rating button backgrounds more saturated for better contrast
+- **Auth screen:** logo mark updated from plain "M" text to the app's SVG icon
+
+### v1.1 — Yearly Heatmap
+- Replaced 18-week horizontal heatmap strip with a full 12-month calendar
+  grid; added year and view dropdowns; added hover tooltips and stat line
+
+### v1.0 — Initial Release
+- SM-2 SRS with Again / Hard / Good / Easy ratings
+- Q&A, Cloze, Formula card types with KaTeX rendering
+- Cram Mode, Weak Cards Mode, Undo last rating
+- Hint and Notes fields, Star / Bookmark
+- Keyboard shortcuts, daily card limits
+- Pre-loaded CFA L1 / L2 / L3 topic tree
+- Image support (base64, canvas-compressed)
+- Dashboard, Progress view, Session history with delete
+- Push notifications, CSV bulk import
+- Firebase Firestore sync, IndexedDB offline, PWA
+- 6 colour themes, dark mode
+- Export / Import / Connect backup system
+- GitHub Pages auto-deploy via GitHub Actions
+- `config.js` / `config.example.js` credential hygiene pattern
 
 ---
 
@@ -228,8 +352,13 @@ Memora needs three image files in the project folder.
    - **Background:** Rounded
    - **Background colour:** `#2563EB` (Memora blue)
    - **Font colour:** `#FFFFFF` (white)
-   - **Font family:** Inter (or any clean sans-serif)
+   - **Font family:** Plus Jakarta Sans (or any clean sans-serif)
    - **Font size:** 50
+
+   > These three image files are only used for the PWA home screen icon
+   > and browser tab favicon. The logo shown inside the app (sidebar and
+   > auth screen) is an inline SVG — it requires no image files and adapts
+   > to all themes automatically.
 
 4. Click **Download**.
 
@@ -571,7 +700,7 @@ confirmation before replacing your current data.
 
 **Connect backup file** — Chrome and Edge on HTTPS only. Links a
 `.json` file on your disk and auto-updates it within 1.5 seconds of
-every change. Shows 🟢 in the sidebar when connected.
+every change. The sidebar shows "● Auto-backing up to…" when connected.
 
 > **About images:** Card images are stored in your browser's IndexedDB
 > and included in JSON exports. They are not synced to Firestore (to
