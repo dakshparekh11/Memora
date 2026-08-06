@@ -6,7 +6,7 @@
 <title>Memora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
@@ -76,7 +76,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   font-size:14px;line-height:1.5;color:var(--text);
   background:var(--panel-bg);-webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;letter-spacing:-.01em;overflow:hidden;
@@ -91,6 +91,13 @@ a:hover{text-decoration:underline;}
 }
 /* Respect reduced motion */
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important;}}
+
+/* ── CUSTOM SCROLLBAR ────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:999px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text-3);}
+*{scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;}
 
 /* ── LAYOUT ──────────────────────────────────────────────── */
 .app{display:flex;height:100vh;overflow:hidden;}
@@ -127,8 +134,8 @@ a:hover{text-decoration:underline;}
 .nav-section{margin-bottom:var(--space-2);}
 .nav-label{
   padding:var(--space-3) var(--space-3) var(--space-1);
-  font-size:10.5px;font-weight:700;color:var(--text-3);
-  text-transform:uppercase;letter-spacing:.08em;
+  font-size:11px;font-weight:600;color:var(--text-3);
+  letter-spacing:.03em;
 }
 .nav-item{
   display:flex;align-items:center;gap:var(--space-2);
@@ -136,15 +143,15 @@ a:hover{text-decoration:underline;}
   color:var(--text-2);font-size:13.5px;font-weight:500;
   cursor:pointer;user-select:none;position:relative;
   transition:background .12s,color .12s;
-  border-left:2px solid transparent;min-height:44px;
+  min-height:44px;
 }
 .nav-item:hover{background:var(--hover);color:var(--text);}
 .nav-item.active{
-  background:var(--accent-muted);color:var(--accent);
-  border-left-color:var(--accent);font-weight:600;
+  background:var(--accent-muted);color:var(--accent);font-weight:600;
 }
 [data-theme="dark"] .nav-item.active{background:rgba(var(--accent-rgb),.18);}
-.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;}
+.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:.7;}
+.nav-item.active .nav-icon{opacity:1;}
 .nav-label-text{flex:1;}
 .nav-badge{
   background:var(--accent);color:#fff;font-size:11px;font-weight:700;
@@ -158,7 +165,7 @@ a:hover{text-decoration:underline;}
   border-top:1px solid var(--border);padding-top:var(--space-3);
   margin-top:var(--space-2);
 }
-.backup-label{padding:var(--space-1) var(--space-2) var(--space-2);font-size:10.5px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;}
+.backup-label{padding:var(--space-1) var(--space-2) var(--space-2);font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.03em;}
 .backup-btns{display:flex;gap:var(--space-1);padding:0 var(--space-2) var(--space-1);}
 .btn-backup{
   flex:1;padding:6px 8px;background:transparent;border:1px solid var(--border-strong);
@@ -274,24 +281,26 @@ a:hover{text-decoration:underline;}
   transition:box-shadow .15s,transform .15s;
 }
 .stat-card:hover{box-shadow:var(--sh-sm);transform:translateY(-1px);}
-.stat-card-top{
-  position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),.3));
-  border-radius:var(--r-xl) var(--r-xl) 0 0;
+.stat-card-top-row{
+  display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--space-2);
+}
+.stat-card-icon{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--r-md);flex-shrink:0;
 }
 .stat-card-label{
-  font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.06em;color:var(--text-3);margin-bottom:var(--space-2);
+  font-size:12px;font-weight:600;color:var(--text-3);
+  letter-spacing:.01em;
 }
 .stat-card-value{
-  font-size:30px;font-weight:800;color:var(--text);
-  letter-spacing:-.06em;line-height:1;margin-bottom:var(--space-1);
+  font-size:28px;font-weight:700;color:var(--text);
+  letter-spacing:-.04em;line-height:1;margin-bottom:var(--space-1);
 }
 .stat-card-sub{font-size:11.5px;color:var(--text-3);}
 
 .section-title{
-  font-size:11px;font-weight:700;color:var(--text-3);
-  text-transform:uppercase;letter-spacing:.08em;margin:var(--space-5) 0 var(--space-3);
+  font-size:11.5px;font-weight:600;color:var(--text-3);
+  letter-spacing:.03em;margin:var(--space-5) 0 var(--space-3);
 }
 .topic-row{
   display:flex;align-items:center;gap:var(--space-3);
@@ -389,7 +398,7 @@ a:hover{text-decoration:underline;}
 .review-card{
   width:100%;max-width:600px;
   background:var(--panel-bg);border:1px solid var(--border);
-  border-radius:var(--r-2xl);padding:var(--space-8) var(--space-8);
+  border-radius:var(--r-2xl);padding:36px;
   box-shadow:var(--sh-md);min-height:200px;
   display:flex;flex-direction:column;
   cursor:pointer;
@@ -406,8 +415,8 @@ a:hover{text-decoration:underline;}
 .review-card-label.q-label{color:var(--accent);}
 .review-card-label.a-label{color:var(--success);}
 .review-card-divider{
-  position:absolute;top:0;left:var(--space-8);right:var(--space-8);
-  height:2px;border-radius:0 0 var(--r-sm) var(--r-sm);
+  position:absolute;top:0;left:36px;right:36px;
+  height:3px;border-radius:0 0 var(--r-sm) var(--r-sm);
 }
 .review-card-divider.q-divider{background:var(--accent);}
 .review-card-divider.a-divider{background:var(--success);}
@@ -453,24 +462,23 @@ a:hover{text-decoration:underline;}
 /* Rating buttons */
 .rating-buttons{display:flex;gap:var(--space-2);width:100%;max-width:600px;}
 .rating-btn{
-  flex:1;border:none;border-radius:var(--r-lg);padding:var(--space-3) var(--space-2);
+  flex:1;border:none;border-radius:999px;padding:var(--space-3) var(--space-2);
   font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  transition:transform .1s,filter .12s;min-height:64px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  transition:transform .1s,filter .12s,box-shadow .12s;min-height:64px;
 }
 .rating-btn:active{transform:scale(.95);}
 .rating-btn:hover{filter:brightness(.93);}
-.rating-btn .r-emoji{font-size:18px;line-height:1;}
-.rating-btn .r-label{font-size:12.5px;font-weight:700;}
-.rating-btn .r-interval{font-size:10.5px;font-weight:500;opacity:.7;}
+.rating-btn .r-label{font-size:13px;font-weight:700;letter-spacing:-.01em;}
+.rating-btn .r-interval{font-size:11px;font-weight:500;opacity:.65;}
 .btn-again{background:#FEE2E2;color:#DC2626;}
 .btn-hard {background:#FEF3C7;color:#D97706;}
 .btn-good {background:#D1FAE5;color:#059669;}
 .btn-easy {background:rgba(var(--accent-rgb),.12);color:var(--accent);}
-[data-theme="dark"] .btn-again{background:rgba(220,38,38,.2);color:#FCA5A5;}
-[data-theme="dark"] .btn-hard {background:rgba(217,119,6,.2);color:#FDE68A;}
-[data-theme="dark"] .btn-good {background:rgba(5,150,105,.2);color:#6EE7B7;}
-[data-theme="dark"] .btn-easy {background:rgba(var(--accent-rgb),.2);}
+[data-theme="dark"] .btn-again{background:rgba(220,38,38,.25);color:#FCA5A5;}
+[data-theme="dark"] .btn-hard {background:rgba(217,119,6,.25);color:#FCD34D;}
+[data-theme="dark"] .btn-good {background:rgba(5,150,105,.25);color:#6EE7B7;}
+[data-theme="dark"] .btn-easy {background:rgba(var(--accent-rgb),.25);}
 
 .review-footer{
   width:100%;max-width:600px;display:flex;
@@ -649,8 +657,8 @@ textarea.form-input{min-height:96px;}
 }
 .settings-section-title{
   padding:var(--space-3) var(--space-4);background:var(--panel-bg2);
-  font-size:11.5px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.07em;color:var(--text-2);border-bottom:1px solid var(--border);
+  font-size:12px;font-weight:600;
+  letter-spacing:.02em;color:var(--text-2);border-bottom:1px solid var(--border);
 }
 .settings-row{
   display:flex;align-items:center;justify-content:space-between;
@@ -780,7 +788,7 @@ textarea.form-input{min-height:96px;}
 
 /* ── EMPTY STATE ─────────────────────────────────────────── */
 .empty-state{text-align:center;padding:60px var(--space-5);color:var(--text-2);}
-.empty-icon{font-size:48px;margin-bottom:var(--space-4);}
+.empty-icon{display:flex;align-items:center;justify-content:center;color:var(--text-3);margin-bottom:var(--space-4);}
 .empty-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:var(--space-2);}
 .empty-desc{font-size:14px;line-height:1.6;margin-bottom:var(--space-5);}
 
@@ -806,7 +814,7 @@ textarea.form-input{min-height:96px;}
   .form-row{flex-direction:column;gap:0;}
   .rating-buttons{gap:var(--space-1);}
   .rating-btn{min-width:60px;padding:10px var(--space-1);font-size:12px;}
-  .rating-btn .r-emoji{font-size:16px;}
+  .rating-btn .r-label{font-size:12px;}
   .review-card{padding:var(--space-5);}
   .review-card-content{font-size:16px;}
   .mode-grid{flex-direction:column;}
@@ -820,7 +828,7 @@ textarea.form-input{min-height:96px;}
   position:fixed;inset:0;z-index:9999;
   background:linear-gradient(160deg,#EFF6FF 0%,#F8FAFC 45%,#F0F4FF 100%);
   display:flex;align-items:center;justify-content:center;
-  font-family:'Inter',-apple-system,sans-serif;
+  font-family:'Plus Jakarta Sans',-apple-system,sans-serif;
 }
 #authOverlay::before{
   content:'';position:absolute;inset:0;pointer-events:none;
@@ -894,7 +902,7 @@ textarea.form-input{min-height:96px;}
 <!-- CONFIG GUARD: shown if config.js is missing -->
 <div id="configWarning" class="config-warning" style="display:none">
   <div class="config-warning-box">
-    <div class="config-warning-icon">⚙️</div>
+    <div class="config-warning-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
     <div class="config-warning-title">Firebase config missing</div>
     <div class="config-warning-body">
       Memora needs a <code>config.js</code> file with your Firebase project keys.<br>
@@ -910,7 +918,7 @@ textarea.form-input{min-height:96px;}
 <div id="authOverlay">
   <div class="auth-card">
     <div class="auth-logo-wrap">
-      <div class="auth-logo">M</div>
+      <div class="auth-logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg></div>
     </div>
     <div class="auth-title" id="authTitle">Sign in to Memora</div>
     <div class="auth-sub">Your personal active recall engine</div>
@@ -925,7 +933,7 @@ textarea.form-input{min-height:96px;}
 </div>
 
 <!-- OFFLINE BANNER -->
-<div id="offlineBanner" class="offline-banner">📴 Offline — syncing when reconnected</div>
+<div id="offlineBanner" class="offline-banner"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Offline — syncing when reconnected</div>
 
 <!-- MAIN APP -->
 <div id="app" class="app" style="display:none">
@@ -933,31 +941,37 @@ textarea.form-input{min-height:96px;}
   <!-- SIDEBAR -->
   <nav id="sidebar" class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">M</div>
+      <div class="sidebar-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+      </div>
       <div class="sidebar-wordmark">Memora</div>
-      <button class="hdr-btn" id="themePickerBtn" title="Choose theme" aria-label="Choose theme">🎨</button>
-      <button class="hdr-btn" id="themeToggleBtn" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+      <button class="hdr-btn" id="themePickerBtn" title="Choose theme" aria-label="Choose theme">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <button class="hdr-btn" id="themeToggleBtn" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
     </div>
 
     <div class="nav-section">
       <div class="nav-item" data-view="dashboard" role="button" tabindex="0">
-        <span class="nav-icon">📊</span><span class="nav-label-text">Dashboard</span>
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="nav-label-text">Dashboard</span>
       </div>
       <div class="nav-item" data-view="review-select" role="button" tabindex="0">
-        <span class="nav-icon">🃏</span><span class="nav-label-text">Review</span>
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg></span><span class="nav-label-text">Review</span>
         <span class="nav-badge" id="reviewBadge" style="display:none">0</span>
       </div>
       <div class="nav-item" data-view="browse" role="button" tabindex="0">
-        <span class="nav-icon">📚</span><span class="nav-label-text">Browse Cards</span>
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span class="nav-label-text">Browse Cards</span>
       </div>
       <div class="nav-item" data-view="add-card" role="button" tabindex="0">
-        <span class="nav-icon">➕</span><span class="nav-label-text">Add Card</span>
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nav-label-text">Add Card</span>
       </div>
       <div class="nav-item" data-view="progress" role="button" tabindex="0">
-        <span class="nav-icon">📈</span><span class="nav-label-text">Progress</span>
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nav-label-text">Progress</span>
       </div>
       <div class="nav-item" data-view="settings" role="button" tabindex="0">
-        <span class="nav-icon">⚙️</span><span class="nav-label-text">Settings</span>
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span><span class="nav-label-text">Settings</span>
       </div>
     </div>
 
@@ -974,7 +988,7 @@ textarea.form-input{min-height:96px;}
       <div class="backup-status" id="backupStatus">Not connected — export regularly.</div>
       <div class="sync-section">
         <div class="sync-account" id="syncAccount"></div>
-        <div class="sync-status" id="syncStatus">☁️ Checking sync…</div>
+        <div class="sync-status" id="syncStatus">Checking sync…</div>
         <button class="btn-signout" id="signOutBtn">Sign out</button>
       </div>
     </div>
@@ -1311,7 +1325,7 @@ async function handleConnectBackupClick(){
 async function restoreBackupFileHandle(){
   const s=document.getElementById('backupStatus'),b=document.getElementById('connectBtn');
   if(!fsApiExists){if(s)s.textContent='Direct backup needs Chrome/Edge — use Export/Import.';if(b)b.style.display='none';return;}
-  if(!window.isSecureContext){if(s)s.textContent='⚠️ Open via http://localhost or HTTPS to enable direct backup.';return;}
+  if(!window.isSecureContext){if(s)s.textContent='⚠ Open via http://localhost or HTTPS to enable direct backup.';return;}
   try{
     const handle=await idbGet(HANDLE_KEY);if(!handle){updateBackupStatus('none');return;}
     backupFileHandle=handle;const perm=await handle.queryPermission({mode:'readwrite'});
@@ -1321,9 +1335,9 @@ async function restoreBackupFileHandle(){
 function updateBackupStatus(status){
   const el=document.getElementById('backupStatus'),btn=document.getElementById('connectBtn');
   if(!el)return;
-  if(status==='connected'){el.textContent='🟢 Auto-backing up to "'+(backupFileHandle?backupFileHandle.name:'file')+'"';if(btn)btn.textContent='Change backup file';}
-  else if(status==='reconnect'){el.textContent='⚠️ Backup file needs reconnecting';if(btn)btn.textContent='Reconnect backup file';}
-  else if(status==='error'){el.textContent='⚠️ Last backup write failed';}
+  if(status==='connected'){el.textContent='● Auto-backing up to "'+(backupFileHandle?backupFileHandle.name:'file')+'"';if(btn)btn.textContent='Change backup file';}
+  else if(status==='reconnect'){el.textContent='⚠ Backup file needs reconnecting';if(btn)btn.textContent='Reconnect backup file';}
+  else if(status==='error'){el.textContent='⚠ Last backup write failed';}
   else{el.textContent='Not connected — export regularly.';if(btn)btn.textContent='Connect backup file';}
 }
 
@@ -1467,19 +1481,18 @@ function _renderReviewCard(){
   }
 
   const imgHtml=card.imageData&&session.flipped?'<img class="review-card-image" src="'+card.imageData+'" alt="diagram">':'';
-  const chapterHtml=card.chapter?'<div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;font-weight:500">📖 '+esc(card.chapter)+'</div>':'';
+  const chapterHtml=card.chapter?'<div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;font-weight:500;display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'+esc(card.chapter)+'</div>':'';
 
   const hintArea=!session.flipped&&card.hint
-    ?(session.hintVisible?'<div class="review-hint-text">💡 '+esc(card.hint)+'</div>':'<button class="review-hint-btn" onclick="showHint()">💡 Show Hint</button>'):'';
-  const notesArea=session.flipped&&card.notes?'<div class="review-notes"><strong>📝 Note:</strong> '+esc(card.notes)+'</div>':'';
+    ?(session.hintVisible?'<div class="review-hint-text"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-right:5px;vertical-align:middle"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'+esc(card.hint)+'</div>':'<button class="review-hint-btn" onclick="showHint()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Show Hint</button>'):'';
+  const notesArea=session.flipped&&card.notes?'<div class="review-notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-right:5px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><strong>Note:</strong> '+esc(card.notes)+'</div>':'';
 
   let actionsHtml='';
   if(session.flipped){
     const rBtns=['again','hard','good','easy'].map(r=>{
-      const emoji={again:'🔁',hard:'😓',good:'👍',easy:'⚡'}[r];
       const lbl={again:'Again',hard:'Hard',good:'Good',easy:'Easy'}[r];
       return'<button class="rating-btn btn-'+r+'" onclick="rateCard(\''+r+'\')" aria-label="Rate '+lbl+'">'
-        +'<span class="r-emoji">'+emoji+'</span><span class="r-label">'+lbl+'</span>'
+        +'<span class="r-label">'+lbl+'</span>'
         +'<span class="r-interval">'+nextIntervalLabel(card,r)+'</span></button>';
     }).join('');
     actionsHtml='<div class="rating-buttons" role="group" aria-label="Rate this card">'+rBtns+'</div>'
@@ -1512,14 +1525,14 @@ function _renderSessionSummary(total,dur){
   const pct=rev?Math.round((good+easy)/rev*100):0,mins=Math.floor(dur/60),secs=dur%60;
   const pb=document.getElementById('reviewProgressBar');if(pb)pb.style.width='100%';
   body.innerHTML='<div class="session-summary">'
-    +'<div style="font-size:56px;margin-bottom:16px">🎉</div>'
+    +'<div style="margin-bottom:16px;color:var(--accent)"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><path d="M13 7l4 4"/><path d="M14.5 6.5l3-3 2.5 2.5-3 3"/><path d="M5 14.5l-3 3 2.5 2.5 3-3"/><path d="M5.5 8.5l-2 2L7 14l2-2"/></svg></div>'
     +'<h2>Session Complete!</h2>'
     +'<p>Reviewed <strong>'+total+' card'+(total!==1?'s':'')+'</strong> in <strong>'+mins+'m '+secs+'s</strong> &nbsp;·&nbsp; <strong>'+pct+'%</strong> retention</p>'
     +'<div class="rating-summary">'
-    +'<div class="rating-pill" style="background:#FEE2E2;color:#991B1B">🔁 '+again+' Again</div>'
-    +'<div class="rating-pill" style="background:#FEF3C7;color:#92400E">😓 '+hard+' Hard</div>'
-    +'<div class="rating-pill" style="background:#D1FAE5;color:#065F46">👍 '+good+' Good</div>'
-    +'<div class="rating-pill" style="background:rgba(var(--accent-rgb),.12);color:var(--accent)">⚡ '+easy+' Easy</div>'
+    +'<div class="rating-pill" style="background:#FEE2E2;color:#991B1B">Again: '+again+'</div>'
+    +'<div class="rating-pill" style="background:#FEF3C7;color:#92400E">Hard: '+hard+'</div>'
+    +'<div class="rating-pill" style="background:#D1FAE5;color:#065F46">Good: '+good+'</div>'
+    +'<div class="rating-pill" style="background:rgba(var(--accent-rgb),.12);color:var(--accent)">Easy: '+easy+'</div>'
     +'</div>'
     +'<button class="btn btn-primary" onclick="closeReview()" style="min-width:160px">← Back to Dashboard</button>'
     +'</div>';
@@ -1580,12 +1593,12 @@ function renderDashboard(c){
     +'<div class="view-subtitle">Good '+(new Date().getHours()<12?'morning':new Date().getHours()<17?'afternoon':'evening')+'&nbsp;·&nbsp;'+new Date().toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})+'</div>'
     +'<hr class="view-divider">'
     +'<button class="start-review-btn"'+(totalDue===0?' disabled':'')+' onclick="setView(\'review-select\')">'
-    +(totalDue>0?'🃏 Start Review — '+totalDue+' card'+(totalDue!==1?'s':'')+' ready':'✅ All caught up for today!')
+    +(totalDue>0?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg> Start Review — '+totalDue+' card'+(totalDue!==1?'s':'')+' ready':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> All caught up for today!')
     +'</button>'
     +'<div class="stats-grid">'
     +_sc(due.length,'Due Today','reviews scheduled',null)
     +_sc(nAvail,'New Cards','of '+(state.settings.newCardsPerDay||20)+'/day limit','#10B981')
-    +_sc(streak+(streak>0?' 🔥':''),'Streak','day'+(streak!==1?'s':'')+' in a row','#F59E0B')
+    +_sc(streak,'Streak','day'+(streak!==1?'s':'')+' in a row','#F59E0B')
     +_sc(state.cards.length,'Total Cards','in your deck','#8B5CF6')
     +'</div>'
     +'<div class="section-title">By Topic</div>'+topicHtml
@@ -1595,8 +1608,23 @@ function renderDashboard(c){
 
 function _sc(val,label,sub,accent){
   const color=accent||'var(--accent)';
-  return'<div class="stat-card"><div class="stat-card-top" style="background:linear-gradient(90deg,'+color+','+color+'55)"></div>'
+  const iconBg=accent?'rgba('+hexToRgbStr(accent)+',.12)':'rgba(var(--accent-rgb),.1)';
+  const icons={
+    'Due Today':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    'New Cards':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="2" y1="12" x2="22" y2="12"/></svg>',
+    'Streak':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+    'Total Cards':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+    'Total Reviews':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+    'Avg Retention':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+    'Study Time':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    'Mature Cards':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  };
+  const icon=icons[label]||'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+  return'<div class="stat-card">'
+    +'<div class="stat-card-top-row">'
     +'<div class="stat-card-label">'+label+'</div>'
+    +'<div class="stat-card-icon" style="background:'+iconBg+';color:'+color+'">'+icon+'</div>'
+    +'</div>'
     +'<div class="stat-card-value" style="color:'+color+'">'+val+'</div>'
     +'<div class="stat-card-sub">'+sub+'</div></div>';
 }
@@ -1738,9 +1766,9 @@ function renderReviewSelect(c){
   c.innerHTML=_mmBtn()+'<div class="view-title">Review</div></div>'
     +'<div class="view-subtitle">Choose your study mode</div><hr class="view-divider">'
     +'<div class="mode-grid">'
-    +'<div class="mode-card active" onclick="selectMode(\'srs\',this)"><div class="mode-icon">🃏</div><div class="mode-title">SRS Review</div><div class="mode-desc">'+due+' due + '+nAvail+' new cards</div></div>'
-    +'<div class="mode-card" onclick="selectMode(\'cram\',this)"><div class="mode-icon">📚</div><div class="mode-title">Cram Mode</div><div class="mode-desc">Review any topic, anytime</div></div>'
-    +'<div class="mode-card" onclick="selectMode(\'weak\',this)"><div class="mode-icon">💪</div><div class="mode-title">Weak Cards</div><div class="mode-desc">'+weak+' card'+(weak!==1?'s':'')+' with 2+ lapses</div></div>'
+    +'<div class="mode-card active" onclick="selectMode(\'srs\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg></div><div class="mode-title">SRS Review</div><div class="mode-desc">'+due+' due + '+nAvail+' new cards</div></div>'
+    +'<div class="mode-card" onclick="selectMode(\'cram\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="mode-title">Cram Mode</div><div class="mode-desc">Review any topic, anytime</div></div>'
+    +'<div class="mode-card" onclick="selectMode(\'weak\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="mode-title">Weak Cards</div><div class="mode-desc">'+weak+' card'+(weak!==1?'s':'')+' with 2+ lapses</div></div>'
     +'</div><div id="_modeOpts"></div>'
     +'<div style="display:flex;gap:12px;margin-top:24px">'
     +'<button class="btn btn-secondary" onclick="setView(\'dashboard\')">← Back</button>'
@@ -1796,7 +1824,7 @@ function renderBrowseList(){
   if(_bf.type)cards=cards.filter(c=>c.type===_bf.type);
   if(_bf.starred)cards=cards.filter(c=>c.starred);
   if(!cards.length){
-    cont.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No cards found</div>'
+    cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div class="empty-title">No cards found</div>'
       +'<div class="empty-desc">Try different filters, or <a href="#" onclick="setView(\'add-card\');return false">add new cards</a>.</div></div>';
     return;
   }
@@ -1810,17 +1838,17 @@ function renderBrowseList(){
     const qText=card.question.length>85?card.question.slice(0,85)+'…':card.question;
     return'<div class="card-item">'
       +'<div class="card-actions">'
-      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();setView(\'add-card\',{editId:\''+card.id+'\'})" aria-label="Edit card" title="Edit">✏️</button>'
-      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();deleteCard(\''+card.id+'\');renderBrowseList()" aria-label="Delete card" title="Delete">🗑️</button>'
+      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();setView(\'add-card\',{editId:\''+card.id+'\'})" aria-label="Edit card" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();deleteCard(\''+card.id+'\');renderBrowseList()" aria-label="Delete card" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>'
       +'</div>'
       +'<div class="card-item-header">'
       +'<span class="card-type-badge type-'+card.type+'">'+(tL[card.type]||'Q&A')+'</span>'
       +'<div class="card-item-question">'+esc(qText)+'</div>'
-      +'<button class="card-star'+(card.starred?' starred':'')+'" onclick="event.stopPropagation();toggleStar(\''+card.id+'\');renderBrowseList()" aria-label="'+(card.starred?'Unstar':'Star')+' card">'+(card.starred?'⭐':'☆')+'</button>'
+      +'<button class="card-star'+(card.starred?' starred':'')+'" onclick="event.stopPropagation();toggleStar(\''+card.id+'\');renderBrowseList()" aria-label="'+(card.starred?'Unstar':'Star')+' card">'+(card.starred?'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>')+'</button>'
       +'</div>'
       +'<div class="card-item-meta">'
       +(topic?'<span class="meta-tag" style="color:'+topic.color+';background:'+topic.color+'18;border-color:'+topic.color+'30">'+esc(topic.name)+'</span>':'')
-      +(card.chapter?'<span class="meta-tag">📖 '+esc(card.chapter)+'</span>':'')
+      +(card.chapter?'<span class="meta-tag">'+esc(card.chapter)+'</span>':'')
       +'<span class="meta-tag">'+esc(card.cfaLevel||'L1')+'</span>'+dueBadge
       +(card.lapses>0?'<span class="meta-tag" style="color:var(--danger);border-color:var(--danger)30;background:var(--danger-bg)">⚠ '+card.lapses+' lapse'+(card.lapses!==1?'s':'')+'</span>':'')
       +'</div></div>';
@@ -1899,7 +1927,7 @@ function renderAddCardView(c){
     +'<div class="form-group"><label class="form-label">Image <span class="form-optional">(optional)</span></label>'
     +'<div class="image-upload-area" onclick="document.getElementById(\'imageFileInput\').click()" role="button" tabindex="0" aria-label="Upload image">'
     +(_cf.imageData?'<img class="image-preview" src="'+_cf.imageData+'" alt="Card image"><br><span style="font-size:12px;color:var(--text-3)">Click to change image</span>'
-      :'📎 Click to attach image — yield curves, payoff diagrams, option graphs…')
+      :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="margin-bottom:6px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><br>Click to attach image — yield curves, payoff diagrams, option graphs…')
     +'</div>'
     +(_cf.imageData?'<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="_cf.imageData=null;renderAddCardView(document.getElementById(\'mainContent\'))">✕ Remove image</button>':'')
     +'</div>'
@@ -1979,12 +2007,12 @@ function renderProgress(c){
         +'<div class="session-row-meta">'+s.cardsReviewed+' cards · '+mins+'m · '+pct+'% retention · '+esc(s.mode||'srs')+'</div>'
         +'</div>'
         +'<div class="session-row-ratings">'
-        +(s.ratings.again>0?'<span style="color:#DC2626">🔁'+s.ratings.again+'</span>':'')
-        +(s.ratings.hard>0?'<span style="color:#D97706">😓'+s.ratings.hard+'</span>':'')
-        +(s.ratings.good>0?'<span style="color:#059669">👍'+s.ratings.good+'</span>':'')
-        +(s.ratings.easy>0?'<span style="color:var(--accent)">⚡'+s.ratings.easy+'</span>':'')
+        +(s.ratings.again>0?'<span style="color:#DC2626;font-size:12px;font-weight:600">Again '+s.ratings.again+'</span>':'')
+        +(s.ratings.hard>0?'<span style="color:#D97706;font-size:12px;font-weight:600">Hard '+s.ratings.hard+'</span>':'')
+        +(s.ratings.good>0?'<span style="color:#059669;font-size:12px;font-weight:600">Good '+s.ratings.good+'</span>':'')
+        +(s.ratings.easy>0?'<span style="color:var(--accent);font-size:12px;font-weight:600">Easy '+s.ratings.easy+'</span>':'')
         +'</div>'
-        +'<button class="btn-icon btn-icon-sm session-delete-btn" onclick="deleteSession(\''+s.id+'\')" aria-label="Delete session" title="Delete this session">🗑️</button>'
+        +'<button class="btn-icon btn-icon-sm session-delete-btn" onclick="deleteSession(\''+s.id+'\')" aria-label="Delete session" title="Delete this session"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>'
         +'</div>';
     }).join('')
     :'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No sessions yet — start reviewing!</p>');
@@ -2014,7 +2042,7 @@ function renderSettings(c){
     +'<div class="settings-row"><div><div class="settings-row-label">Reminder time</div></div>'
     +'<input type="time" class="settings-input" value="'+(state.settings.notificationTime||'09:00')+'" aria-label="Reminder time" onchange="state.settings.notificationTime=this.value;save();scheduleNotifications();showSnackbar(\'Reminder time updated ✓\')"></div>'
     +(typeof Notification!=='undefined'&&Notification.permission==='denied'
-      ?'<div class="settings-row"><div class="settings-row-label" style="color:var(--danger)">⚠️ Notifications blocked in browser settings</div></div>':'')
+      ?'<div class="settings-row"><div class="settings-row-label" style="color:var(--danger)">⚠ Notifications blocked in browser settings</div></div>':'')
     +'</div>'
 
     +'<div class="settings-section"><div class="settings-section-title">Appearance</div>'
@@ -2032,7 +2060,7 @@ function renderSettings(c){
     +'<div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:14px">'
     +'<div><div class="settings-row-label">Import from CSV</div><div class="settings-row-sub">Add many cards at once from a spreadsheet</div></div>'
     +'<div class="csv-hint">type,question,answer,hint,notes,chapter,level,topic_id\nqa,"What is Beta?","Sensitivity of asset to market return",,,"Ch3 - CAPM",L1,l1_pm\nformula,"$$r = r_f + \\beta(r_m - r_f)$$","CAPM expected return",,,"Ch3 - CAPM",L1,l1_pm\ncloze,"{{c1::Beta}} measures systematic risk",,,,,,L1,l1_pm</div>'
-    +'<button class="btn btn-secondary" onclick="document.getElementById(\'csvFileInput\').click()">📄 Import CSV</button>'
+    +'<button class="btn btn-secondary" onclick="document.getElementById(\'csvFileInput\').click()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Import CSV</button>'
     +'</div></div>'
 
     +'<div class="settings-section" style="border-color:#FECACA">'
@@ -2046,7 +2074,7 @@ function toggleNotifications(enabled){
     if(!('Notification' in window)){showSnackbar('Notifications not supported in this browser');return;}
     if(Notification.permission==='denied'){showSnackbar('Notifications blocked — enable in browser settings');renderSettings(document.getElementById('mainContent'));return;}
     Notification.requestPermission().then(p=>{
-      if(p==='granted'){state.settings.notificationEnabled=true;save();scheduleNotifications();showSnackbar('Daily reminder enabled! 🔔');}
+      if(p==='granted'){state.settings.notificationEnabled=true;save();scheduleNotifications();showSnackbar('Daily reminder enabled');}
       else showSnackbar('Notification permission denied');
       renderSettings(document.getElementById('mainContent'));
     });
@@ -2146,7 +2174,7 @@ function renderThemePicker(){
   document.querySelectorAll('.theme-picker-overlay').forEach(el=>el.remove());
   document.body.insertAdjacentHTML('beforeend',
     '<div class="theme-picker-overlay" onclick="if(event.target.classList.contains(\'theme-picker-overlay\'))this.remove()" role="dialog" aria-modal="true" aria-label="Choose theme">'
-    +'<div class="theme-picker"><div class="theme-picker-header">🎨 Choose Theme</div>'
+    +'<div class="theme-picker"><div class="theme-picker-header"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:6px;vertical-align:middle"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>Choose Theme</div>'
     +THEME_DEFS.map(t=>'<div class="theme-option'+(state.settings.themeFamily===t.id?' active':'')+'" onclick="selectTheme(\''+t.id+'\')" role="button" tabindex="0">'
       +'<div class="theme-swatch-lg" style="background:'+t[mode].accent+'"></div>'
       +'<div><div class="theme-option-name">'+t.name+'</div><div class="theme-option-tag">'+t.tagline+'</div></div>'
@@ -2186,22 +2214,22 @@ function setAccountText(t){const el=document.getElementById('syncAccount');if(el
 
 function scheduleCloudSync(){
   if(!_uid||_applyingRemote)return;
-  clearTimeout(_syncTimer);setSyncStatus('☁️ Syncing…');
+  clearTimeout(_syncTimer);setSyncStatus('Syncing…');
   const payload={...state,cards:state.cards.map(c=>({...c,imageData:undefined}))};
   _syncTimer=setTimeout(()=>{
     _userDoc(_uid).set({data:JSON.stringify(payload),updatedAt:Date.now()})
-      .then(()=>setSyncStatus('☁️ Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})))
-      .catch(e=>{console.error('Sync',e);setSyncStatus('⚠️ Sync failed');});
+      .then(()=>setSyncStatus('Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})))
+      .catch(e=>{console.error('Sync',e);setSyncStatus('⚠ Sync failed');});
   },1200);
 }
 function startCloudSync(uid){
-  _uid=uid;setSyncStatus('☁️ Connecting…');
+  _uid=uid;setSyncStatus('Connecting…');
   setAccountText('Signed in as '+(auth.currentUser?auth.currentUser.email:''));
   if(_syncUnsub)_syncUnsub();
   _syncUnsub=_userDoc(uid).onSnapshot(doc=>{
     if(!doc.exists){
       _userDoc(uid).set({data:JSON.stringify({...state,cards:state.cards.map(c=>({...c,imageData:undefined}))}),updatedAt:Date.now()});
-      setSyncStatus('☁️ Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));return;
+      setSyncStatus('Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));return;
     }
     let remote;try{remote=JSON.parse(doc.data().data);}catch(e){return;}
     _applyingRemote=true;
@@ -2209,8 +2237,8 @@ function startCloudSync(uid){
     state=migrate(remote);state.cards.forEach(c=>{if(imgMap[c.id])c.imageData=imgMap[c.id];});
     idbSet(DB_KEY,state).catch(()=>{});renderAll();_applyingRemote=false;
     const ts=doc.data().updatedAt?new Date(doc.data().updatedAt):new Date();
-    setSyncStatus('☁️ Synced · '+ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
-  },err=>{console.error('Sync listener',err);setSyncStatus('⚠️ Sync error');});
+    setSyncStatus('Synced · '+ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+  },err=>{console.error('Sync listener',err);setSyncStatus('⚠ Sync error');});
 }
 function stopCloudSync(){if(_syncUnsub){_syncUnsub();_syncUnsub=null;}_uid=null;}
 function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('app').style.display='';_updateOfflineBanner();}
