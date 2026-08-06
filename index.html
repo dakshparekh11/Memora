@@ -1335,7 +1335,7 @@ async function restoreBackupFileHandle(){
 function updateBackupStatus(status){
   const el=document.getElementById('backupStatus'),btn=document.getElementById('connectBtn');
   if(!el)return;
-  if(status==='connected'){el.textContent='● Auto-backing up to "'+(backupFileHandle?backupFileHandle.name:'file')+'"';if(btn)btn.textContent='Change backup file';}
+  if(status==='connected'){el.textContent='🟢 Auto-backing up to "'+(backupFileHandle?backupFileHandle.name:'file')+'"';if(btn)btn.textContent='Change backup file';}
   else if(status==='reconnect'){el.textContent='⚠ Backup file needs reconnecting';if(btn)btn.textContent='Reconnect backup file';}
   else if(status==='error'){el.textContent='⚠ Last backup write failed';}
   else{el.textContent='Not connected — export regularly.';if(btn)btn.textContent='Connect backup file';}
