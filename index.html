@@ -89,6 +89,131 @@ a:hover{text-decoration:underline;}
 [data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select{
   color-scheme:dark;
 }
+
+/* ── NEW CARD TYPE BADGES ──────────────────────────────────── */
+.type-vignette{background:#D1FAE5;color:#065F46;}
+.type-essay   {background:#FEF3C7;color:#92400E;}
+[data-theme="dark"] .type-vignette{background:rgba(5,150,105,.2);color:#6EE7B7;}
+[data-theme="dark"] .type-essay   {background:rgba(202,138,4,.2);color:#FDE047;}
+
+/* ── VIGNETTE REVIEW ────────────────────────────────────────── */
+.vignette-passage-wrap{
+  background:var(--panel-bg2);border:1px solid var(--border);
+  border-left:3px solid var(--accent);border-radius:var(--r-lg);
+  padding:var(--space-3) var(--space-4);margin-bottom:var(--space-3);
+  max-height:210px;overflow-y:auto;width:100%;max-width:600px;
+}
+.vignette-passage-label{
+  font-size:9.5px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.14em;color:var(--accent);margin-bottom:6px;
+}
+.vignette-passage-text{font-size:13.5px;line-height:1.7;color:var(--text-2);}
+.subq-dots{display:flex;gap:5px;margin-bottom:var(--space-2);width:100%;max-width:600px;}
+.subq-dot{height:3px;flex:1;border-radius:var(--r-full);background:var(--border-strong);transition:background .2s;}
+.subq-dot.done{background:var(--success);}
+.subq-dot.active{background:var(--accent);}
+
+/* ── ESSAY REVIEW ───────────────────────────────────────────── */
+.essay-textarea{
+  width:100%;max-width:600px;min-height:130px;
+  padding:var(--space-3) var(--space-4);
+  border:1.5px solid var(--border-strong);border-radius:var(--r-md);
+  font-size:14px;line-height:1.6;color:var(--text);background:var(--panel-bg);
+  font-family:inherit;resize:vertical;outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.essay-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1);}
+.essay-feedback-box{
+  width:100%;max-width:600px;white-space:pre-wrap;
+  background:var(--panel-bg2);border:1px solid var(--border);
+  border-left:3px solid var(--accent);border-radius:var(--r-lg);
+  padding:var(--space-3) var(--space-4);margin-top:var(--space-2);
+  font-size:13.5px;line-height:1.65;color:var(--text-2);
+}
+.essay-feedback-label{
+  font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--accent);margin-bottom:6px;
+}
+.essay-spinner{
+  display:inline-block;width:14px;height:14px;border:2px solid var(--border-strong);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;
+  vertical-align:middle;margin-right:6px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.essay-ai-btn{
+  background:none;border:1.5px solid var(--border-strong);
+  border-radius:var(--r-full);padding:7px 18px;font-size:12.5px;
+  font-weight:600;color:var(--text-2);font-family:inherit;
+  transition:all .12s;min-height:36px;cursor:pointer;margin-top:var(--space-2);
+}
+.essay-ai-btn:hover{background:var(--hover);border-color:var(--accent);color:var(--accent);}
+
+/* ── TIMED MODE ─────────────────────────────────────────────── */
+.timed-bar-container{width:100%;max-width:600px;margin-bottom:var(--space-2);}
+.timed-label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.timed-label{font-size:11.5px;font-weight:600;color:var(--text-3);}
+.timed-label.warn{color:#F59E0B;}.timed-label.danger{color:#EF4444;}
+.timed-bar-track{height:3px;background:var(--border);border-radius:var(--r-full);overflow:hidden;}
+.timed-bar-fill{height:100%;border-radius:var(--r-full);background:var(--accent);transition:width 1s linear,background .3s;}
+.timed-bar-fill.warn{background:#F59E0B;}.timed-bar-fill.danger{background:#EF4444;}
+.timed-expired-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#FEE2E2;color:#991B1B;padding:3px 12px;
+  border-radius:var(--r-full);font-size:11.5px;font-weight:700;
+  margin-bottom:var(--space-2);
+}
+[data-theme="dark"] .timed-expired-pill{background:rgba(220,38,38,.22);color:#FCA5A5;}
+
+/* ── FORMULA SHEET ──────────────────────────────────────────── */
+.formula-sheet-toolbar{display:flex;gap:var(--space-2);align-items:center;margin-bottom:var(--space-4);flex-wrap:wrap;}
+.formula-level-section{margin-bottom:var(--space-7);}
+.formula-level-header{
+  display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;
+  letter-spacing:-.03em;color:var(--text);margin-bottom:var(--space-4);
+  padding-bottom:var(--space-2);border-bottom:2px solid var(--border);
+}
+.formula-level-pill{
+  font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--r-full);
+  background:var(--accent-muted);color:var(--accent);
+}
+.formula-group{margin-bottom:var(--space-5);}
+.formula-group-header{font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:var(--space-2);display:flex;align-items:center;gap:7px;}
+.formula-group-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.formula-ref-card{padding:var(--space-3) var(--space-4);border:1px solid var(--border);border-radius:var(--r-lg);background:var(--panel-bg);margin-bottom:var(--space-2);}
+.formula-ref-front{font-size:15px;color:var(--text);margin-bottom:var(--space-1);}
+.formula-ref-back{font-size:13px;color:var(--text-2);line-height:1.55;padding-top:var(--space-2);border-top:1px solid var(--border);}
+.formula-print-btn{background:none;border:1.5px solid var(--border-strong);border-radius:var(--r-md);padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-2);font-family:inherit;cursor:pointer;transition:all .12s;min-height:44px;}
+.formula-print-btn:hover{background:var(--hover);border-color:var(--accent);color:var(--accent);}
+.formula-empty{text-align:center;padding:60px var(--space-5);color:var(--text-3);}
+
+/* ── EXAM COUNTDOWN ─────────────────────────────────────────── */
+.countdown-card{background:var(--panel-bg);border:1px solid var(--border);border-radius:var(--r-xl);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);display:flex;align-items:center;gap:var(--space-4);}
+.countdown-icon{width:42px;height:42px;border-radius:var(--r-lg);flex-shrink:0;background:var(--accent-muted);color:var(--accent);display:flex;align-items:center;justify-content:center;}
+.countdown-text{flex:1;}
+.countdown-title{font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:2px;}
+.countdown-val{font-size:22px;font-weight:700;letter-spacing:-.04em;color:var(--text);}
+.countdown-sub{font-size:12px;color:var(--text-3);}
+.countdown-badge{font-size:11.5px;font-weight:700;padding:4px 13px;border-radius:var(--r-full);flex-shrink:0;}
+.countdown-badge.on-track{background:#D1FAE5;color:#065F46;}
+.countdown-badge.behind{background:#FEE2E2;color:#991B1B;}
+[data-theme="dark"] .countdown-badge.on-track{background:rgba(5,150,105,.2);color:#6EE7B7;}
+[data-theme="dark"] .countdown-badge.behind{background:rgba(220,38,38,.2);color:#FCA5A5;}
+
+/* ── READING PROGRESS ───────────────────────────────────────── */
+.reading-row{display:flex;align-items:center;gap:var(--space-3);padding:9px 0;border-bottom:1px solid var(--border);}
+.reading-row:last-child{border-bottom:none;}
+.reading-row-name{font-size:13px;font-weight:500;flex:1;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.reading-bar-wrap{width:90px;height:4px;background:var(--border);border-radius:var(--r-full);overflow:hidden;flex-shrink:0;}
+.reading-bar-fill{height:100%;border-radius:var(--r-full);background:var(--accent);transition:width .5s;}
+.reading-pct{min-width:36px;text-align:right;font-size:12px;font-weight:600;color:var(--text);}
+.reading-cnt{min-width:52px;text-align:right;font-size:11.5px;color:var(--text-3);}
+
+@media print{
+  .sidebar,.sidebar-backdrop,.view-header,.start-review-btn,.btn,.formula-sheet-toolbar,.hdr-btn,.nav-section,.backup-section{display:none!important;}
+  .main{margin-left:0!important;}
+  .formula-ref-card{break-inside:avoid;}
+}
+
 /* Respect reduced motion */
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important;}}
 
@@ -967,6 +1092,9 @@ textarea.form-input{min-height:96px;}
       <div class="nav-item" data-view="add-card" role="button" tabindex="0">
         <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span class="nav-label-text">Add Card</span>
       </div>
+      <div class="nav-item" data-view="formula-sheet" role="button" tabindex="0">
+        <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></span><span class="nav-label-text">Formula Sheet</span>
+      </div>
       <div class="nav-item" data-view="progress" role="button" tabindex="0">
         <span class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span class="nav-label-text">Progress</span>
       </div>
@@ -1026,10 +1154,11 @@ textarea.form-input{min-height:96px;}
 <script>
 'use strict';
 /* ================================================================
-   MEMORA — v1.1.0
+   MEMORA — v2.0.0
    Single-file PWA · Firebase sync · IndexedDB offline · SM-2 SRS
    Architecture: Logwise-identical (auth, backup, themes, sync)
-   New in 1.1: chapter field · delete session · env-based config
+   New in 2.0: Vignette+Essay cards · Formula Sheet · Timed Mode
+   Per-reading progress · Exam countdown · Claude AI essay feedback
    ================================================================ */
 
 // ── CONFIG GUARD ──────────────────────────────────────────────
@@ -1221,7 +1350,8 @@ function buildWeakDeck(){return[...state.cards].filter(c=>c.lapses>=2).sort((a,b
 // ── STATE ─────────────────────────────────────────────────────
 function defaultState(){
   return{cards:[],sessions:[],settings:{theme:'light',themeFamily:'focus',
-    newCardsPerDay:20,reviewCardsPerDay:100,notificationEnabled:false,notificationTime:'09:00'},
+    newCardsPerDay:20,reviewCardsPerDay:100,notificationEnabled:false,notificationTime:'09:00',
+    examDate:'',timedSeconds:90},
     ui:{view:'dashboard',viewParams:{}}};
 }
 function migrate(s){
@@ -1229,13 +1359,17 @@ function migrate(s){
   s.settings.theme=s.settings.theme||'light';s.settings.themeFamily=s.settings.themeFamily||'focus';
   s.settings.newCardsPerDay=s.settings.newCardsPerDay||20;s.settings.reviewCardsPerDay=s.settings.reviewCardsPerDay||100;
   s.settings.notificationEnabled=!!s.settings.notificationEnabled;s.settings.notificationTime=s.settings.notificationTime||'09:00';
+  if(!s.settings.examDate)s.settings.examDate='';
+  if(!s.settings.timedSeconds)s.settings.timedSeconds=90;
   s.ui=s.ui||{};s.ui.view=s.ui.view||'dashboard';s.ui.viewParams=s.ui.viewParams||{};
   s.cards.forEach(c=>{
     if(c.isNew===undefined)c.isNew=true;if(!c.interval)c.interval=1;
     if(!c.easeFactor)c.easeFactor=2.5;if(!c.reps)c.reps=0;if(!c.lapses)c.lapses=0;
     if(!c.dueDate)c.dueDate=null;if(!c.lastReviewed)c.lastReviewed=null;
     if(!c.type)c.type='qa';if(!c.question)c.question='';if(!c.answer)c.answer='';
-    if(!c.hint)c.hint='';if(!c.notes)c.notes='';if(!c.chapter)c.chapter=''; // ← chapter field
+    if(!c.hint)c.hint='';if(!c.notes)c.notes='';if(!c.chapter)c.chapter='';
+    if(!c.reading)c.reading='';if(!c.passage)c.passage='';
+    if(!c.subQuestions)c.subQuestions=[];
     if(!c.cfaLevel)c.cfaLevel='L1';if(!c.topicId)c.topicId=null;
     if(!c.tags)c.tags=[];if(c.starred===undefined)c.starred=false;
     if(!c.imageData)c.imageData=null;if(!c.createdAt)c.createdAt=todayISO();
@@ -1335,7 +1469,7 @@ async function restoreBackupFileHandle(){
 function updateBackupStatus(status){
   const el=document.getElementById('backupStatus'),btn=document.getElementById('connectBtn');
   if(!el)return;
-  if(status==='connected'){el.textContent='🟢 Auto-backing up to "'+(backupFileHandle?backupFileHandle.name:'file')+'"';if(btn)btn.textContent='Change backup file';}
+  if(status==='connected'){el.textContent='● Auto-backing up to "'+(backupFileHandle?backupFileHandle.name:'file')+'"';if(btn)btn.textContent='Change backup file';}
   else if(status==='reconnect'){el.textContent='⚠ Backup file needs reconnecting';if(btn)btn.textContent='Reconnect backup file';}
   else if(status==='error'){el.textContent='⚠ Last backup write failed';}
   else{el.textContent='Not connected — export regularly.';if(btn)btn.textContent='Connect backup file';}
@@ -1362,7 +1496,8 @@ function addCard(data){
   const card={
     id:uid('card'),type:data.type||'qa',
     question:data.question||'',answer:data.answer||'',
-    hint:data.hint||'',notes:data.notes||'',chapter:data.chapter||'', // ← chapter
+    hint:data.hint||'',notes:data.notes||'',chapter:data.chapter||'',
+    reading:data.reading||'',passage:data.passage||'',subQuestions:data.subQuestions||[],
     cfaLevel:data.cfaLevel||'L1',topicId:data.topicId||null,
     tags:[],starred:false,isNew:true,interval:1,easeFactor:2.5,reps:0,lapses:0,
     dueDate:null,lastReviewed:null,imageData:data.imageData||null,createdAt:todayISO()
@@ -1392,17 +1527,27 @@ function deleteSession(id){
 let session={
   active:false,mode:'srs',queue:[],againQueue:[],done:[],current:null,
   flipped:false,hintVisible:false,ratings:{again:0,hard:0,good:0,easy:0},
-  startTime:null,_timer:null,lastAction:null
+  startTime:null,_timer:null,lastAction:null,
+  vigSubIdx:0,vigAllDone:false,
+  essayText:'',essayRevealed:false,essayFeedback:null,essayFeedbackLoading:false,
+  timedMode:false,timedSeconds:90,timedRemaining:90,timedExpired:false,_timedTimer:null,
+  timedStats:{onTime:0,overtime:0}
 };
 
+function buildTimedDeck(){return buildSRSDeck();}
 function startSession(mode,opts={}){
-  let deck=mode==='srs'?buildSRSDeck():mode==='cram'?buildCramDeck(opts.topicId,opts.level):buildWeakDeck();
+  let deck=mode==='srs'||mode==='timed'?buildSRSDeck():mode==='cram'?buildCramDeck(opts.topicId,opts.level):buildWeakDeck();
   if(!deck.length){showSnackbar('No cards available for this mode');return;}
-  clearInterval(session._timer);
+  clearInterval(session._timer);clearInterval(session._timedTimer);
+  const isTimed=mode==='timed',ts=state.settings.timedSeconds||90;
   session={
     active:true,mode,queue:[...deck],againQueue:[],done:[],current:null,
     flipped:false,hintVisible:false,ratings:{again:0,hard:0,good:0,easy:0},
-    startTime:Date.now(),_timer:null,lastAction:null
+    startTime:Date.now(),_timer:null,lastAction:null,
+    vigSubIdx:0,vigAllDone:false,
+    essayText:'',essayRevealed:false,essayFeedback:null,essayFeedbackLoading:false,
+    timedMode:isTimed,timedSeconds:ts,timedRemaining:ts,timedExpired:false,_timedTimer:null,
+    timedStats:{onTime:0,overtime:0}
   };
   document.getElementById('reviewOverlay').style.display='flex';
   document.body.style.overflow='hidden';
@@ -1411,19 +1556,69 @@ function startSession(mode,opts={}){
 }
 
 function _nextCard(){
+  if(session._timedTimer){clearInterval(session._timedTimer);session._timedTimer=null;}
   if(!session.queue.length){
     if(session.againQueue.length){session.queue=[...session.againQueue];session.againQueue=[];}
     else{_endSession();return;}
   }
   session.current=session.queue.shift();
   session.flipped=false;session.hintVisible=false;
+  session.vigSubIdx=0;session.vigAllDone=false;
+  session.essayText='';session.essayRevealed=false;session.essayFeedback=null;session.essayFeedbackLoading=false;
+  session.timedExpired=false;session.timedRemaining=session.timedSeconds;
   _renderReviewCard();_updateReviewHeader();
+  if(session.timedMode&&!session.flipped)_startTimedCountdown();
 }
-function flipCard(){if(!session.active||session.flipped)return;session.flipped=true;_renderReviewCard();}
+function flipCard(){
+  if(!session.active)return;
+  const card=session.current;
+  if(card&&card.type==='essay')return;
+  if(card&&card.type==='vignette'){_nextVigSubQ();return;}
+  if(session.flipped)return;
+  if(session.timedMode&&session._timedTimer){clearInterval(session._timedTimer);session._timedTimer=null;}
+  session.flipped=true;_renderReviewCard();
+}
+function _nextVigSubQ(){
+  const card=session.current;if(!card||card.type!=='vignette')return;
+  const sqs=card.subQuestions||[];
+  if(!session.flipped){session.flipped=true;_renderReviewCard();return;}
+  if(session.vigSubIdx<sqs.length-1){
+    session.vigSubIdx++;session.flipped=false;_renderReviewCard();
+  }else{session.vigAllDone=true;_renderReviewCard();}
+}
+function revealEssay(){
+  const ta=document.getElementById('_essayTA');if(ta)session.essayText=ta.value;
+  session.essayRevealed=true;session.flipped=true;_renderReviewCard();
+}
+function _startTimedCountdown(){
+  if(session._timedTimer)clearInterval(session._timedTimer);
+  session.timedRemaining=session.timedSeconds;
+  _updateTimedBar();
+  session._timedTimer=setInterval(()=>{
+    session.timedRemaining--;
+    if(session.timedRemaining<=0){
+      clearInterval(session._timedTimer);session._timedTimer=null;
+      session.timedExpired=true;
+      if(!session.flipped)session.flipped=true;
+      _renderReviewCard();
+    }else _updateTimedBar();
+  },1000);
+}
+function _updateTimedBar(){
+  const track=document.getElementById('_timedTrack'),label=document.getElementById('_timedLabel');
+  if(!track||!label)return;
+  const pct=Math.max(0,session.timedRemaining/session.timedSeconds*100);
+  const fill=track.querySelector('.timed-bar-fill');
+  if(fill){const cls=pct<20?'danger':pct<40?'warn':'';fill.style.width=pct+'%';fill.className='timed-bar-fill'+(cls?' '+cls:'');}
+  const lcls=pct<20?'danger':pct<40?'warn':'';
+  label.textContent=session.timedRemaining+'s';label.className='timed-label'+(lcls?' '+lcls:'');
+}
 function showHint(){session.hintVisible=true;_renderReviewCard();}
 
 function rateCard(rKey){
-  if(!session.active||!session.current||!session.flipped)return;
+  if(!session.active||!session.current)return;
+  if(session._timedTimer){clearInterval(session._timedTimer);session._timedTimer=null;}
+  if(session.timedMode){if(session.timedExpired)session.timedStats.overtime++;else session.timedStats.onTime++;}
   const card=session.current,prev={...card},updated=sm2Rate(card,rKey);
   const i=state.cards.findIndex(c=>c.id===card.id);if(i>=0)state.cards[i]=updated;
   session.ratings[rKey]++;session.lastAction={prev,rKey,updated};
@@ -1445,9 +1640,10 @@ function undoLastRating(){
 
 function closeReview(){
   clearInterval(session._timer);
+  clearInterval(session._timedTimer);
   if(session.done.length){
     const dur=Math.floor((Date.now()-session.startTime)/1000);
-    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode});
+    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
     save();
   }
   session.active=false;
@@ -1458,7 +1654,8 @@ function closeReview(){
 function _endSession(){
   clearInterval(session._timer);
   const dur=Math.floor((Date.now()-session.startTime)/1000);
-  if(session.done.length){state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode});save();}
+  clearInterval(session._timedTimer);
+  if(session.done.length){state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});save();}
   _renderSessionSummary(session.done.length,dur);
 }
 function _updateReviewHeader(){
@@ -1468,45 +1665,51 @@ function _updateReviewHeader(){
   if(pt)pt.textContent=done+' / '+total;if(pb)pb.style.width=pct+'%';
 }
 
+function _rBtns(card){
+  return['again','hard','good','easy'].map(r=>{
+    const lbl={again:'Again',hard:'Hard',good:'Good',easy:'Easy'}[r];
+    return'<button class="rating-btn btn-'+r+'" onclick="rateCard(\''+r+'\')" aria-label="'+lbl+'">'
+      +'<span class="r-label">'+lbl+'</span><span class="r-interval">'+nextIntervalLabel(card,r)+'</span></button>';
+  }).join('');
+}
+function _undoRow(){
+  return'<div class="review-footer">'
+    +'<button class="undo-btn" onclick="undoLastRating()"'+(session.lastAction?'':' disabled')+' aria-label="Undo">↩ Undo</button>'
+    +'<span class="kb-hint" aria-hidden="true">1 · 2 · 3 · 4</span></div>';
+}
+function _timedBarHtml(){
+  if(!session.timedMode)return'';
+  const pct=Math.max(0,session.timedRemaining/session.timedSeconds*100);
+  const cls=pct<20?'danger':pct<40?'warn':'';
+  return(session.timedExpired?'<div class="timed-expired-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Time Expired</div>':'')
+    +'<div class="timed-bar-container">'
+    +'<div class="timed-label-row"><span class="timed-label">Time limit</span><span class="timed-label'+(cls?' '+cls:'')+'" id="_timedLabel">'+session.timedRemaining+'s</span></div>'
+    +'<div class="timed-bar-track" id="_timedTrack"><div class="timed-bar-fill'+(cls?' '+cls:'')+'" style="width:'+pct+'%"></div></div>'
+    +'</div>';
+}
+
 function _renderReviewCard(){
   const body=document.getElementById('reviewBody');if(!body||!session.current)return;
-  const card=session.current,topic=getTopicById(card.topicId);
+  const card=session.current;
+  if(card.type==='vignette'){_renderVignetteCard(body,card);setTimeout(renderKatexAll,60);return;}
+  if(card.type==='essay'){_renderEssayCard(body,card);setTimeout(renderKatexAll,60);return;}
+  const topic=getTopicById(card.topicId);
   const tColor=topic?topic.color:'#6B7280',tName=topic?topic.name:'General';
-
   let content='';
-  if(session.flipped){
-    content=card.type==='cloze'?parseCloze(card.question,true):'<span class="katex-content">'+esc(card.answer)+'</span>';
-  }else{
-    content=card.type==='cloze'?parseCloze(card.question,false):'<span class="katex-content">'+esc(card.question)+'</span>';
-  }
-
+  if(session.flipped){content=card.type==='cloze'?parseCloze(card.question,true):'<span class="katex-content">'+esc(card.answer)+'</span>';}
+  else{content=card.type==='cloze'?parseCloze(card.question,false):'<span class="katex-content">'+esc(card.question)+'</span>';}
   const imgHtml=card.imageData&&session.flipped?'<img class="review-card-image" src="'+card.imageData+'" alt="diagram">':'';
   const chapterHtml=card.chapter?'<div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;font-weight:500;display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'+esc(card.chapter)+'</div>':'';
-
   const hintArea=!session.flipped&&card.hint
     ?(session.hintVisible?'<div class="review-hint-text"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-right:5px;vertical-align:middle"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'+esc(card.hint)+'</div>':'<button class="review-hint-btn" onclick="showHint()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Show Hint</button>'):'';
   const notesArea=session.flipped&&card.notes?'<div class="review-notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-right:5px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><strong>Note:</strong> '+esc(card.notes)+'</div>':'';
-
   let actionsHtml='';
-  if(session.flipped){
-    const rBtns=['again','hard','good','easy'].map(r=>{
-      const lbl={again:'Again',hard:'Hard',good:'Good',easy:'Easy'}[r];
-      return'<button class="rating-btn btn-'+r+'" onclick="rateCard(\''+r+'\')" aria-label="Rate '+lbl+'">'
-        +'<span class="r-label">'+lbl+'</span>'
-        +'<span class="r-interval">'+nextIntervalLabel(card,r)+'</span></button>';
-    }).join('');
-    actionsHtml='<div class="rating-buttons" role="group" aria-label="Rate this card">'+rBtns+'</div>'
-      +'<div class="review-footer">'
-      +'<button class="undo-btn" onclick="undoLastRating()"'+(session.lastAction?'':' disabled')+' aria-label="Undo last rating">↩ Undo</button>'
-      +'<span class="kb-hint" aria-hidden="true">Space · 1 · 2 · 3 · 4</span>'
-      +'</div>';
-  }else{
-    actionsHtml='<div class="review-flip-hint" aria-live="polite">Tap the card or press <strong>Space</strong> to reveal the answer</div>';
-  }
-
+  if(session.flipped){actionsHtml='<div class="rating-buttons" role="group">'+_rBtns(card)+'</div>'+_undoRow();}
+  else{actionsHtml='<div class="review-flip-hint">Tap the card or press <strong>Space</strong> to reveal the answer</div>';}
   body.innerHTML=
-    '<div class="review-topic-badge" style="background:'+tColor+'">'+esc(tName)+' · '+esc(card.cfaLevel||'L1')+'</div>'
-    +'<div class="review-card'+(session.flipped?' no-click':'')+'" onclick="'+(session.flipped?'':'flipCard()')+'" role="button" aria-label="'+(session.flipped?'Answer':'Question — click to reveal')+'">'
+    _timedBarHtml()
+    +'<div class="review-topic-badge" style="background:'+tColor+'">'+esc(tName)+' · '+esc(card.cfaLevel||'L1')+'</div>'
+    +'<div class="review-card'+(session.flipped?' no-click':'')+'" onclick="'+(session.flipped?'':'flipCard()')+'" role="button">'
     +'<div class="review-card-divider '+(session.flipped?'a-divider':'q-divider')+'"></div>'
     +'<div class="review-card-label '+(session.flipped?'a-label':'q-label')+'">'+(session.flipped?'ANSWER':'QUESTION')+'</div>'
     +chapterHtml
@@ -1515,8 +1718,88 @@ function _renderReviewCard(){
     +(hintArea?'<div>'+hintArea+'</div>':'')
     +(notesArea||'')
     +actionsHtml;
-
   setTimeout(renderKatexAll,60);
+}
+
+function _renderVignetteCard(body,card){
+  const sqs=card.subQuestions||[];
+  if(!sqs.length){body.innerHTML='<p style="color:var(--text-3);padding:20px">No sub-questions — edit this card to add some.</p>';return;}
+  const idx=session.vigSubIdx,sq=sqs[idx];
+  const topic=getTopicById(card.topicId);
+  const tColor=topic?topic.color:'#6B7280',tName=topic?topic.name:'General';
+  const dots=sqs.map((_,i)=>'<div class="subq-dot'+(i<idx?' done':i===idx?' active':'')+'"></div>').join('');
+  const showRate=session.vigAllDone||(session.flipped&&idx===sqs.length-1);
+  let actionsHtml='';
+  if(!session.flipped){
+    actionsHtml='<div class="review-flip-hint">Tap the card to reveal the answer to sub-question '+(idx+1)+' of '+sqs.length+'</div>';
+  }else if(showRate){
+    actionsHtml='<div class="rating-buttons" role="group">'+_rBtns(card)+'</div>'+_undoRow();
+  }else{
+    actionsHtml='<button class="btn btn-primary" onclick="_nextVigSubQ()" style="align-self:flex-start;margin-top:8px">Next Sub-question →</button>';
+  }
+  body.innerHTML=
+    '<div class="review-topic-badge" style="background:'+tColor+'">'+esc(tName)+' · VIGNETTE · '+esc(card.cfaLevel||'L1')+'</div>'
+    +'<div class="vignette-passage-wrap"><div class="vignette-passage-label">Scenario / Passage</div><div class="vignette-passage-text katex-content">'+esc(card.passage||card.question)+'</div></div>'
+    +'<div class="subq-dots">'+dots+'</div>'
+    +'<div class="review-card no-click" style="'+(session.flipped?'cursor:default':'cursor:pointer')+'" onclick="'+(session.flipped?'':'_nextVigSubQ()')+'">'
+    +'<div class="review-card-divider '+(session.flipped?'a-divider':'q-divider')+'"></div>'
+    +'<div class="review-card-label '+(session.flipped?'a-label':'q-label')+'">SUB-Q '+(idx+1)+'/'+sqs.length+' — '+(session.flipped?'ANSWER':'QUESTION')+'</div>'
+    +'<div class="review-card-content"><span class="katex-content">'+esc(session.flipped?(sq.answer||''):(sq.question||''))+'</span></div>'
+    +'</div>'
+    +actionsHtml;
+}
+
+function _renderEssayCard(body,card){
+  const topic=getTopicById(card.topicId);
+  const tColor=topic?topic.color:'#6B7280',tName=topic?topic.name:'General';
+  const hasKey=!!localStorage.getItem('memora_akey');
+  let actionsHtml='';
+  if(!session.essayRevealed){
+    actionsHtml='<button class="btn btn-primary" onclick="revealEssay()">Reveal Model Answer</button>';
+  }else{
+    let feedHtml='';
+    if(session.essayFeedbackLoading)feedHtml='<div class="essay-feedback-box"><span class="essay-spinner"></span>Getting AI feedback…</div>';
+    else if(session.essayFeedback)feedHtml='<div class="essay-feedback-box"><div class="essay-feedback-label">AI Feedback</div>'+esc(session.essayFeedback)+'</div>';
+    actionsHtml=(hasKey&&!session.essayFeedback&&!session.essayFeedbackLoading
+      ?'<button class="essay-ai-btn" onclick="getEssayFeedback()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;vertical-align:middle"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><polyline points="12 6 12 12 16 14"/></svg>Get AI Feedback</button>':'')
+      +feedHtml
+      +'<div class="rating-buttons" role="group" style="margin-top:var(--space-3)">'+_rBtns(card)+'</div>'+_undoRow();
+  }
+  body.innerHTML=
+    '<div class="review-topic-badge" style="background:'+tColor+'">'+esc(tName)+' · ESSAY · '+esc(card.cfaLevel||'L1')+'</div>'
+    +'<div class="review-card no-click" style="cursor:default">'
+    +'<div class="review-card-divider q-divider"></div>'
+    +'<div class="review-card-label q-label">ESSAY PROMPT</div>'
+    +'<div class="review-card-content"><span class="katex-content">'+esc(card.question)+'</span></div>'
+    +'</div>'
+    +(!session.essayRevealed?'<textarea id="_essayTA" class="essay-textarea" placeholder="Write your answer here before revealing the model answer…">'+esc(session.essayText)+'</textarea>':'')
+    +(session.essayRevealed?'<div class="review-notes" style="border-left:3px solid var(--success)"><strong style="color:var(--success)">Model Answer:</strong><div class="katex-content" style="margin-top:6px">'+esc(card.answer)+'</div></div>':'')
+    +actionsHtml;
+}
+
+async function getEssayFeedback(){
+  const ta=document.getElementById('_essayTA');if(ta)session.essayText=ta.value;
+  const card=session.current;if(!card)return;
+  const apiKey=localStorage.getItem('memora_akey');
+  if(!apiKey){showSnackbar('Add your Anthropic API key in Settings first');return;}
+  session.essayFeedbackLoading=true;_renderReviewCard();
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,
+        messages:[{role:'user',content:'You are a CFA exam marker. Give concise structured feedback in 3 labeled sections:\n✓ Correct — what the candidate got right\n✗ Missing — key points omitted\n★ Score — /10 estimate with brief rationale\n\nKeep total under 200 words.\n\nQuestion: '+card.question+'\n\nModel answer: '+(card.answer||'(not provided)')+'\n\nCandidate wrote: '+(session.essayText||'(nothing written)')}]})
+    });
+    const data=await resp.json();
+    session.essayFeedback=(data.content&&data.content[0]&&data.content[0].text)||'No feedback returned.';
+  }catch(e){session.essayFeedback='Could not reach the API — check your key in Settings.';}
+  session.essayFeedbackLoading=false;_renderReviewCard();setTimeout(renderKatexAll,60);
+}
+
+function _saveApiKey(val){
+  if(val.trim())localStorage.setItem('memora_akey',val.trim());
+  else localStorage.removeItem('memora_akey');
+  showSnackbar(val.trim()?'API key saved locally':'API key removed');
 }
 
 function _renderSessionSummary(total,dur){
@@ -1557,6 +1840,7 @@ function renderView(){
   else if(v==='review-select')renderReviewSelect(content);
   else if(v==='browse')renderBrowse(content);
   else if(v==='add-card')renderAddCardView(content);
+  else if(v==='formula-sheet')renderFormulaSheet(content);
   else if(v==='progress')renderProgress(content);
   else if(v==='settings')renderSettings(content);
   else renderDashboard(content);
@@ -1589,9 +1873,29 @@ function renderDashboard(c){
       +'</div>';
   }).join('')||'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No cards yet. <a href="#" onclick="setView(\'add-card\');return false">Add your first card →</a></p>';
 
+  const examDate=state.settings.examDate;
+  let countdownHtml='';
+  if(examDate){
+    const dLeft=daysBetween(todayISO(),examDate);
+    const pending=getDueCards().length+Math.min(getNewCards().length,Math.max(0,(state.settings.newCardsPerDay||20)-getTodayNewCount()));
+    const needed=dLeft>0?Math.ceil(pending/dLeft):pending;
+    const onTrack=dLeft>0&&pending<=(needed+5);
+    const bCls=dLeft<=0?'behind':onTrack?'on-track':'behind';
+    const bTxt=dLeft<=0?'Exam Day!':onTrack?'On Track':'Behind';
+    countdownHtml='<div class="countdown-card">'
+      +'<div class="countdown-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>'
+      +'<div class="countdown-text">'
+      +'<div class="countdown-title">CFA Exam Countdown</div>'
+      +'<div class="countdown-val">'+(dLeft<=0?'Exam Day!':dLeft+' day'+(dLeft!==1?'s':'')+' left')+'</div>'
+      +'<div class="countdown-sub">'+(dLeft>0?'Need ~'+needed+' card'+(needed!==1?'s':'')+'/day to clear queue':'Best of luck!')+'</div>'
+      +'</div>'
+      +'<div class="countdown-badge '+bCls+'">'+bTxt+'</div>'
+      +'</div>';
+  }
   c.innerHTML=_mmBtn()+'<div class="view-title">Dashboard</div></div>'
     +'<div class="view-subtitle">Good '+(new Date().getHours()<12?'morning':new Date().getHours()<17?'afternoon':'evening')+'&nbsp;·&nbsp;'+new Date().toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})+'</div>'
     +'<hr class="view-divider">'
+    +countdownHtml
     +'<button class="start-review-btn"'+(totalDue===0?' disabled':'')+' onclick="setView(\'review-select\')">'
     +(totalDue>0?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg> Start Review — '+totalDue+' card'+(totalDue!==1?'s':'')+' ready':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> All caught up for today!')
     +'</button>'
@@ -1769,6 +2073,7 @@ function renderReviewSelect(c){
     +'<div class="mode-card active" onclick="selectMode(\'srs\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg></div><div class="mode-title">SRS Review</div><div class="mode-desc">'+due+' due + '+nAvail+' new cards</div></div>'
     +'<div class="mode-card" onclick="selectMode(\'cram\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="mode-title">Cram Mode</div><div class="mode-desc">Review any topic, anytime</div></div>'
     +'<div class="mode-card" onclick="selectMode(\'weak\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="mode-title">Weak Cards</div><div class="mode-desc">'+weak+' card'+(weak!==1?'s':'')+' with 2+ lapses</div></div>'
+    +'<div class="mode-card" onclick="selectMode(\'timed\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="mode-title">Timed Quiz</div><div class="mode-desc">'+(state.settings.timedSeconds||90)+'s/card · exam pacing</div></div>'
     +'</div><div id="_modeOpts"></div>'
     +'<div style="display:flex;gap:12px;margin-top:24px">'
     +'<button class="btn btn-secondary" onclick="setView(\'dashboard\')">← Back</button>'
@@ -1791,7 +2096,8 @@ function selectMode(mode,el){
 function startReviewFromSel(){
   if(_selMode==='srs')startSession('srs');
   else if(_selMode==='cram')startSession('cram',{topicId:_cramTopic,level:_cramLevel});
-  else startSession('weak');
+  else if(_selMode==='weak')startSession('weak');
+  else if(_selMode==='timed')startSession('timed');
 }
 
 // ── BROWSE CARDS ──────────────────────────────────────────────
@@ -1809,7 +2115,7 @@ function renderBrowse(c){
     +'<select class="filter-select" aria-label="Filter by topic" onchange="_bf.topic=this.value;renderBrowseList()">'
     +'<option value="">All Topics</option>'+topics.map(t=>'<option value="'+t.id+'"'+(_bf.topic===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select>'
     +'<select class="filter-select" aria-label="Filter by type" onchange="_bf.type=this.value;renderBrowseList()">'
-    +'<option value="">All Types</option><option value="qa">Q&amp;A</option><option value="cloze">Cloze</option><option value="formula">Formula</option></select>'
+    +'<option value="">All Types</option><option value="qa">Q&amp;A</option><option value="cloze">Cloze</option><option value="formula">Formula</option><option value="vignette">Vignette</option><option value="essay">Essay</option></select>'
     +'<div class="filter-chip'+(_bf.starred?' active':'')+'" onclick="_bf.starred=!_bf.starred;this.classList.toggle(\'active\');renderBrowseList()" role="button" tabindex="0" aria-pressed="'+_bf.starred+'">⭐ Starred</div>'
     +'</div><div id="_browseList" class="card-list"></div>';
   renderBrowseList();
@@ -1818,7 +2124,7 @@ function renderBrowseList(){
   const cont=document.getElementById('_browseList');if(!cont)return;
   const today=todayISO();let cards=[...state.cards];
   const q=_bf.search.toLowerCase();
-  if(q)cards=cards.filter(c=>c.question.toLowerCase().includes(q)||c.answer.toLowerCase().includes(q)||c.chapter.toLowerCase().includes(q));
+  if(q)cards=cards.filter(c=>(c.question||'').toLowerCase().includes(q)||(c.answer||'').toLowerCase().includes(q)||(c.chapter||'').toLowerCase().includes(q)||(c.reading||'').toLowerCase().includes(q)||(c.passage||'').toLowerCase().includes(q));
   if(_bf.level)cards=cards.filter(c=>c.cfaLevel===_bf.level);
   if(_bf.topic)cards=cards.filter(c=>c.topicId===_bf.topic);
   if(_bf.type)cards=cards.filter(c=>c.type===_bf.type);
@@ -1828,14 +2134,15 @@ function renderBrowseList(){
       +'<div class="empty-desc">Try different filters, or <a href="#" onclick="setView(\'add-card\');return false">add new cards</a>.</div></div>';
     return;
   }
-  const tL={qa:'Q&A',cloze:'Cloze',formula:'Formula'};
+  const tL={qa:'Q&A',cloze:'Cloze',formula:'Formula',vignette:'Vignette',essay:'Essay'};
   cont.innerHTML=cards.map(card=>{
     const topic=getTopicById(card.topicId);let dueBadge='';
     if(card.isNew)dueBadge='<span class="due-badge due-new">New</span>';
     else if(card.dueDate&&card.dueDate<today)dueBadge='<span class="due-badge due-overdue">Overdue</span>';
     else if(card.dueDate&&card.dueDate===today)dueBadge='<span class="due-badge due-today">Due Today</span>';
     else if(card.dueDate)dueBadge='<span class="due-badge due-future">'+fmtDate(card.dueDate)+'</span>';
-    const qText=card.question.length>85?card.question.slice(0,85)+'…':card.question;
+    const rawQ=card.type==='vignette'?(card.subQuestions&&card.subQuestions.length?'['+card.subQuestions.length+' sub-questions] '+(card.passage||card.question):card.passage||card.question):card.question;
+    const qText=rawQ.length>90?rawQ.slice(0,90)+'…':rawQ;
     return'<div class="card-item">'
       +'<div class="card-actions">'
       +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();setView(\'add-card\',{editId:\''+card.id+'\'})" aria-label="Edit card" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
@@ -1848,6 +2155,7 @@ function renderBrowseList(){
       +'</div>'
       +'<div class="card-item-meta">'
       +(topic?'<span class="meta-tag" style="color:'+topic.color+';background:'+topic.color+'18;border-color:'+topic.color+'30">'+esc(topic.name)+'</span>':'')
+      +(card.reading?'<span class="meta-tag">'+esc(card.reading)+'</span>':'')
       +(card.chapter?'<span class="meta-tag">'+esc(card.chapter)+'</span>':'')
       +'<span class="meta-tag">'+esc(card.cfaLevel||'L1')+'</span>'+dueBadge
       +(card.lapses>0?'<span class="meta-tag" style="color:var(--danger);border-color:var(--danger)30;background:var(--danger-bg)">⚠ '+card.lapses+' lapse'+(card.lapses!==1?'s':'')+'</span>':'')
@@ -1856,13 +2164,15 @@ function renderBrowseList(){
 }
 
 // ── ADD / EDIT CARD ───────────────────────────────────────────
-let _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',cfaLevel:'L1',topicId:null,imageData:null};
+let _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:'L1',topicId:null,imageData:null};
 function renderAddCardView(c){
   const editId=state.ui.viewParams&&state.ui.viewParams.editId;
   const editCard=editId?state.cards.find(cc=>cc.id===editId):null;
   if(editCard){
     _cf={type:editCard.type||'qa',question:editCard.question||'',answer:editCard.answer||'',
       hint:editCard.hint||'',notes:editCard.notes||'',chapter:editCard.chapter||'',
+      reading:editCard.reading||'',passage:editCard.passage||editCard.question||'',
+      subQuestions:editCard.subQuestions||[],
       cfaLevel:editCard.cfaLevel||'L1',topicId:editCard.topicId||null,imageData:editCard.imageData||null};
   }else if(!editId){
     _cf={..._cf,question:'',answer:'',hint:'',notes:'',chapter:'',imageData:null};
@@ -1871,7 +2181,9 @@ function renderAddCardView(c){
   const typeHints={
     qa:'Classic question → answer format. Best for concepts and definitions.',
     cloze:'Fill-in-the-blank: wrap answers with {{c1::answer}}. e.g. "The {{c1::Sharpe Ratio}} measures risk-adjusted return."',
-    formula:'Write your formula using LaTeX (use $…$ inline or $$…$$ for display block). Put the explanation on the back.'
+    formula:'Write your formula using LaTeX (use $…$ inline or $$…$$ for display block). Put the explanation on the back.',
+    vignette:'Case-based format for L2/L3 — write the scenario/passage, then add 2–6 sub-questions with individual answers.',
+    essay:'L3 constructed response — the essay prompt in Question, the model answer/marking guide in Answer. AI feedback available during review.'
   };
   const qPH={qa:'What concept or definition to test?',cloze:'The {{c1::Sharpe Ratio}} measures {{c2::excess return}} per unit of risk…',formula:'$$r = r_f + \\beta(r_m - r_f)$$'};
 
@@ -1885,29 +2197,52 @@ function renderAddCardView(c){
     +'<button class="type-btn'+(_cf.type==='qa'?' active':'')+'" onclick="setCFType(\'qa\')" aria-pressed="'+(_cf.type==='qa')+'">Q&amp;A</button>'
     +'<button class="type-btn'+(_cf.type==='cloze'?' active':'')+'" onclick="setCFType(\'cloze\')" aria-pressed="'+(_cf.type==='cloze')+'">Cloze</button>'
     +'<button class="type-btn'+(_cf.type==='formula'?' active':'')+'" onclick="setCFType(\'formula\')" aria-pressed="'+(_cf.type==='formula')+'">Formula</button>'
-    +'</div><p class="form-hint">'+typeHints[_cf.type]+'</p></div>'
+    +'<button class="type-btn'+(_cf.type==='formula'?' active':'')+'" onclick="setCFType(\'formula\')" aria-pressed="'+(_cf.type==='formula')+'">Formula</button>'
+    +'<button class="type-btn'+(_cf.type==='vignette'?' active':'')+'" onclick="setCFType(\'vignette\')" aria-pressed="'+(_cf.type==='vignette')+'">Vignette</button>'
+    +'<button class="type-btn'+(_cf.type==='essay'?' active':'')+'" onclick="setCFType(\'essay\')" aria-pressed="'+(_cf.type==='essay')+'">Essay</button>'
+    +'</div><p class="form-hint">'+typeHints[_cf.type||'qa']+'</p></div>'
 
-    // Question / Formula
-    +'<div class="form-group"><label class="form-label for="_cfQ">'+(_cf.type==='formula'?'Formula — Front':'Question — Front')+'</label>'
-    +'<textarea class="form-input" id="_cfQ" placeholder="'+qPH[_cf.type]+'" oninput="_cf.question=this.value;_updateFPreview()" aria-required="true">'+esc(_cf.question)+'</textarea>'
-    +(_cf.type==='formula'?'<div class="katex-preview katex-content" id="_fPreview" aria-label="Formula preview">'+esc(_cf.question)+'</div>':'')
-    +'</div>'
+    // Question / Passage — type-aware
+    +(_cf.type==='vignette'?
+      '<div class="form-group"><label class="form-label">Scenario / Passage</label>'
+      +'<textarea class="form-input" id="_cfQ" style="min-height:130px" placeholder="Write the vignette case scenario here… (supports KaTeX math)" oninput="_cf.passage=this.value;_cf.question=this.value" aria-required="true">'+esc(_cf.passage||_cf.question)+'</textarea></div>'
+      +'<div class="form-group"><label class="form-label">Sub-Questions <span class="form-optional">(add 2–6)</span></label>'
+      +'<div id="_subQList">'+(_cf.subQuestions||[]).map(function(sq,i){return(
+        '<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px">'
+        +'<div style="flex:1">'
+        +'<textarea class="form-input" style="min-height:50px;margin-bottom:4px" placeholder="Sub-question '+(i+1)+' — question…" oninput="_cf.subQuestions['+i+'].question=this.value">'+esc(sq.question)+'</textarea>'
+        +'<textarea class="form-input" style="min-height:50px" placeholder="Sub-question '+(i+1)+' — answer…" oninput="_cf.subQuestions['+i+'].answer=this.value">'+esc(sq.answer)+'</textarea>'
+        +'</div>'
+        +'<button type="button" class="btn-icon btn-icon-sm" style="margin-top:4px" onclick="_removeSQ('+i+')" title="Remove"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+        +'</div>'
+      );}).join('')+'</div>'
+      +'<button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="_addSQ()">+ Add Sub-question</button></div>'
+    :
+      '<div class="form-group"><label class="form-label" for="_cfQ">'+(_cf.type==='formula'?'Formula — Front':_cf.type==='essay'?'Essay Prompt — Front':'Question — Front')+'</label>'
+      +'<textarea class="form-input" id="_cfQ" placeholder="'+qPH[_cf.type||'qa']+'" oninput="_cf.question=this.value;_updateFPreview()" aria-required="true">'+esc(_cf.question)+'</textarea>'
+      +(_cf.type==='formula'?'<div class="katex-preview katex-content" id="_fPreview" aria-label="Formula preview">'+esc(_cf.question)+'</div>':'')
+      +'</div>'
+      +'<div class="form-group"><label class="form-label" for="_cfA">'+(_cf.type==='formula'?'Explanation — Back':_cf.type==='essay'?'Model Answer / Marking Guide — Back':'Answer — Back')+(_cf.type==='cloze'?' <span class="form-optional">(optional for cloze)</span>':'')+'</label>'
+      +'<textarea class="form-input" id="_cfA" placeholder="'+(_cf.type==='essay'?'Write the model answer or CFA marking guide…':'Answer or explanation…')+'" oninput="_cf.answer=this.value"'+(_cf.type!=='cloze'&&_cf.type!=='essay'?' aria-required="true"':'')+'>'+esc(_cf.answer)+'</textarea></div>'
+    )
 
-    // Answer
-    +'<div class="form-group"><label class="form-label" for="_cfA">'+(_cf.type==='formula'?'Explanation — Back':'Answer — Back')+(_cf.type==='cloze'?' <span class="form-optional">(optional for cloze)</span>':'')+'</label>'
-    +'<textarea class="form-input" id="_cfA" placeholder="Answer or explanation…" oninput="_cf.answer=this.value"'+(_cf.type!=='cloze'?' aria-required="true"':'')+'>'+esc(_cf.answer)+'</textarea></div>'
-
-    // Chapter + Hint (2-col)
+    // Reading + Chapter
     +'<div class="form-row">'
+    +'<div class="form-group"><label class="form-label" for="_cfReading">Reading <span class="form-optional">(optional)</span></label>'
+    +'<input type="text" class="form-input" id="_cfReading" placeholder="e.g. Reading 23 — Intercorporate Inv." value="'+esc(_cf.reading||'')+'" oninput="_cf.reading=this.value"></div>'
     +'<div class="form-group"><label class="form-label" for="_cfChap">Chapter <span class="form-optional">(optional)</span></label>'
-    +'<input type="text" class="form-input" id="_cfChap" placeholder="e.g. Chapter 3 — Time Value of Money" value="'+esc(_cf.chapter)+'" oninput="_cf.chapter=this.value"></div>'
-    +'<div class="form-group"><label class="form-label" for="_cfHint">Hint <span class="form-optional">(optional)</span></label>'
-    +'<input type="text" class="form-input" id="_cfHint" placeholder="Memory hook or first letter…" value="'+esc(_cf.hint)+'" oninput="_cf.hint=this.value"></div>'
+    +'<input type="text" class="form-input" id="_cfChap" placeholder="e.g. Chapter 3 — TVM" value="'+esc(_cf.chapter)+'" oninput="_cf.chapter=this.value"></div>'
     +'</div>'
 
-    // Notes / Mnemonic
-    +'<div class="form-group"><label class="form-label" for="_cfNotes">Notes / Mnemonic <span class="form-optional">(optional)</span></label>'
-    +'<textarea class="form-input" id="_cfNotes" style="min-height:68px" placeholder="Personal notes, memory tricks, context…" oninput="_cf.notes=this.value">'+esc(_cf.notes)+'</textarea></div>'
+    // Hint + Notes (hidden for vignette)
+    +(_cf.type!=='vignette'?
+      '<div class="form-row">'
+      +'<div class="form-group"><label class="form-label" for="_cfHint">Hint <span class="form-optional">(optional)</span></label>'
+      +'<input type="text" class="form-input" id="_cfHint" placeholder="Memory hook or first letter…" value="'+esc(_cf.hint)+'" oninput="_cf.hint=this.value"></div>'
+      +'<div class="form-group"><label class="form-label" for="_cfNotes">Notes <span class="form-optional">(optional)</span></label>'
+      +'<textarea class="form-input" id="_cfNotes" style="min-height:44px" placeholder="Personal notes, mnemonics…" oninput="_cf.notes=this.value">'+esc(_cf.notes)+'</textarea></div>'
+      +'</div>'
+    :'')
 
     // Level + Topic (2-col)
     +'<div class="form-row">'
@@ -1941,22 +2276,42 @@ function renderAddCardView(c){
 
   setTimeout(renderKatexAll,100);
 }
-function setCFType(t){_cf.type=t;renderAddCardView(document.getElementById('mainContent'));}
+function setCFType(t){
+  _cf.type=t;
+  if(t==='vignette'&&(!_cf.subQuestions||!_cf.subQuestions.length))
+    _cf.subQuestions=[{id:uid('sq'),question:'',answer:'',hint:''}];
+  renderAddCardView(document.getElementById('mainContent'));
+}
+function _addSQ(){
+  if(!_cf.subQuestions)_cf.subQuestions=[];
+  if(_cf.subQuestions.length>=8){showSnackbar('Maximum 8 sub-questions');return;}
+  _cf.subQuestions.push({id:uid('sq'),question:'',answer:'',hint:''});
+  renderAddCardView(document.getElementById('mainContent'));
+}
+function _removeSQ(i){
+  _cf.subQuestions.splice(i,1);
+  renderAddCardView(document.getElementById('mainContent'));
+}
 function _updateTopicSel(){
   const sel=document.getElementById('_cfTopicSel');if(!sel)return;
   sel.innerHTML='<option value="">No topic</option>'+(CFA_TOPICS[_cf.cfaLevel]||CFA_TOPICS.L1).map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('');_cf.topicId=null;
 }
 function _updateFPreview(){const el=document.getElementById('_fPreview');if(!el)return;el.textContent=_cf.question||'';renderKatexAll();}
 function saveCard(editId){
-  if(!_cf.question.trim()){showSnackbar('Question is required');return;}
-  if(!_cf.answer.trim()&&_cf.type!=='cloze'){showSnackbar('Answer is required');return;}
+  if(_cf.type==='vignette'){
+    if(!(_cf.passage||_cf.question).trim()){showSnackbar('Passage is required');return;}
+    if(!_cf.subQuestions||_cf.subQuestions.length<1){showSnackbar('Add at least 1 sub-question');return;}
+  }else{
+    if(!_cf.question.trim()){showSnackbar('Question is required');return;}
+    if(!_cf.answer.trim()&&_cf.type!=='cloze'&&_cf.type!=='essay'){showSnackbar('Answer is required');return;}
+  }
   if(editId){
-    updateCard(editId,{type:_cf.type,question:_cf.question,answer:_cf.answer,hint:_cf.hint,notes:_cf.notes,chapter:_cf.chapter,cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:_cf.imageData});
+    updateCard(editId,{type:_cf.type,question:_cf.passage||_cf.question,answer:_cf.answer,hint:_cf.hint,notes:_cf.notes,chapter:_cf.chapter,reading:_cf.reading||'',passage:_cf.passage||'',subQuestions:_cf.subQuestions||[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:_cf.imageData});
     showSnackbar('Card updated ✓');
   }else{
-    addCard({..._cf});showSnackbar('Card added ✓');
+    addCard({..._cf,question:_cf.passage||_cf.question});showSnackbar('Card added ✓');
   }
-  _cf.question='';_cf.answer='';_cf.hint='';_cf.notes='';_cf.chapter='';_cf.imageData=null;
+  _cf.question='';_cf.answer='';_cf.hint='';_cf.notes='';_cf.chapter='';_cf.reading='';_cf.passage='';_cf.subQuestions=[];_cf.imageData=null;
   setView('browse');
 }
 
@@ -1994,6 +2349,19 @@ function renderProgress(c){
       +'</div>'
     ).join(''):'<p style="color:var(--text-3);font-size:13px;padding:12px 0">Add cards with topics to see retention stats.</p>')
 
+    +(()=>{
+      const readings=[...new Set(state.cards.filter(c=>c.reading).map(c=>c.reading))].sort();
+      if(!readings.length)return'';
+      const rows=readings.map(r=>{
+        const rc=state.cards.filter(c=>c.reading===r);
+        const mat=rc.filter(c=>!c.isNew&&c.reps>=3).length;
+        const pct=rc.length?Math.round(mat/rc.length*100):0;
+        return'<div class="reading-row"><div class="reading-row-name" title="'+esc(r)+'">'+esc(r.length>36?r.slice(0,36)+'…':r)+'</div>'
+          +'<div class="reading-bar-wrap"><div class="reading-bar-fill" style="width:'+pct+'%"></div></div>'
+          +'<div class="reading-pct">'+pct+'%</div><div class="reading-cnt">'+rc.length+' cards</div></div>';
+      });
+      return'<div class="section-title" style="margin-top:28px">By Reading</div>'+rows.join('');
+    })()
     +'<div class="section-title" style="margin-top:28px">Study Activity</div>'+_renderHeatmapSection('_progHmGrid')
 
     +'<div class="section-title" style="margin-top:28px">Recent Sessions</div>'
@@ -2017,6 +2385,53 @@ function renderProgress(c){
     }).join('')
     :'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No sessions yet — start reviewing!</p>');
 }
+
+// ── FORMULA SHEET ─────────────────────────────────────────────
+let _fsSearch='';
+function renderFormulaSheet(c){
+  const fCards=state.cards.filter(cc=>cc.type==='formula');
+  c.innerHTML=_mmBtn()+'<div class="view-title">Formula Sheet</div>'
+    +'<button class="formula-print-btn" onclick="window.print()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;vertical-align:middle"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / PDF</button></div>'
+    +'<div class="view-subtitle">'+fCards.length+' formula card'+(fCards.length!==1?'s':'')+' · all levels</div>'
+    +'<hr class="view-divider">'
+    +'<div class="formula-sheet-toolbar">'
+    +'<input type="search" class="search-input" style="max-width:320px" placeholder="Search formulas…" value="'+esc(_fsSearch)+'" oninput="_fsSearch=this.value;renderFSList()">'
+    +'</div>'
+    +'<div id="_fsContent"></div>';
+  renderFSList();setTimeout(renderKatexAll,100);
+}
+function renderFSList(){
+  const cont=document.getElementById('_fsContent');if(!cont)return;
+  let cards=state.cards.filter(c=>c.type==='formula');
+  if(_fsSearch){const q=_fsSearch.toLowerCase();cards=cards.filter(c=>(c.question||'').toLowerCase().includes(q)||(c.answer||'').toLowerCase().includes(q)||(c.chapter||'').toLowerCase().includes(q)||(c.reading||'').toLowerCase().includes(q));}
+  if(!cards.length){
+    cont.innerHTML='<div class="formula-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:12px;opacity:.3"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>'
+      +(state.cards.length?'<div>No formula cards match your search.</div>':'<div>Add cards with type <strong>Formula</strong> to see them here.</div>')
+      +'</div>';return;
+  }
+  let html='';
+  ['L1','L2','L3'].forEach(level=>{
+    const lc=cards.filter(c=>c.cfaLevel===level);if(!lc.length)return;
+    const topicMap={};
+    lc.forEach(c=>{const k=c.topicId||'__none';if(!topicMap[k])topicMap[k]=[];topicMap[k].push(c);});
+    html+='<div class="formula-level-section">'
+      +'<div class="formula-level-header">CFA Level '+level.slice(1)+' <span class="formula-level-pill">'+lc.length+' formula'+(lc.length!==1?'s':'')+'</span></div>';
+    Object.entries(topicMap).forEach(([tid,tc])=>{
+      const t=getTopicById(tid);
+      html+='<div class="formula-group"><div class="formula-group-header">'
+        +(t?'<span class="formula-group-dot" style="background:'+t.color+'"></span>'+esc(t.name):'General')
+        +'</div>';
+      html+=tc.map(card=>'<div class="formula-ref-card">'
+        +'<div class="formula-ref-front katex-content">'+esc(card.question)+'</div>'
+        +(card.answer?'<div class="formula-ref-back katex-content">'+esc(card.answer)+'</div>':'')
+        +'</div>').join('');
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  cont.innerHTML=html;setTimeout(renderKatexAll,60);
+}
+
 function _avgRet(){
   let g=0,t=0;
   state.sessions.forEach(s=>{g+=(s.ratings.good||0)+(s.ratings.easy||0);t+=(s.ratings.again||0)+(s.ratings.hard||0)+(s.ratings.good||0)+(s.ratings.easy||0);});
@@ -2059,10 +2474,24 @@ function renderSettings(c){
     +'<div class="settings-section"><div class="settings-section-title">Bulk Import</div>'
     +'<div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:14px">'
     +'<div><div class="settings-row-label">Import from CSV</div><div class="settings-row-sub">Add many cards at once from a spreadsheet</div></div>'
-    +'<div class="csv-hint">type,question,answer,hint,notes,chapter,level,topic_id\nqa,"What is Beta?","Sensitivity of asset to market return",,,"Ch3 - CAPM",L1,l1_pm\nformula,"$$r = r_f + \\beta(r_m - r_f)$$","CAPM expected return",,,"Ch3 - CAPM",L1,l1_pm\ncloze,"{{c1::Beta}} measures systematic risk",,,,,,L1,l1_pm</div>'
+    +'<div class="csv-hint">type,question,answer,hint,notes,chapter,reading,level,topic_id\nqa,"What is Beta?","Sensitivity of asset to market return",,,"Ch3 - CAPM",L1,l1_pm\nformula,"$$r = r_f + \\beta(r_m - r_f)$$","CAPM expected return",,,"Ch3 - CAPM",L1,l1_pm\ncloze,"{{c1::Beta}} measures systematic risk",,,,,,L1,l1_pm</div>'
     +'<button class="btn btn-secondary" onclick="document.getElementById(\'csvFileInput\').click()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Import CSV</button>'
     +'</div></div>'
 
+    +'<div class="settings-section"><div class="settings-section-title">Exam Planning</div>'
+    +'<div class="settings-row"><div><div class="settings-row-label">CFA Exam Date</div>'
+    +'<div class="settings-row-sub">Enables the countdown card on your dashboard</div></div>'
+    +'<input type="date" class="settings-input" value="'+(state.settings.examDate||'')+'" aria-label="CFA exam date" onchange="state.settings.examDate=this.value;save();renderDashboard(document.getElementById(\'mainContent\'))"></div>'
+    +'<div class="settings-row"><div><div class="settings-row-label">Timed Quiz — seconds per card</div>'
+    +'<div class="settings-row-sub">90s matches real CFA exam pacing (90s/question)</div></div>'
+    +'<input type="number" class="settings-input" style="width:74px" value="'+(state.settings.timedSeconds||90)+'" min="10" max="300" onchange="state.settings.timedSeconds=+this.value||90;save()"></div></div>'
+    +'<div class="settings-section"><div class="settings-section-title">AI Essay Feedback</div>'
+    +'<div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:12px">'
+    +'<div><div class="settings-row-label">Anthropic API Key</div>'
+    +'<div class="settings-row-sub">Used only for Essay card AI feedback during review. Stored locally in your browser — never sent to Firebase or synced to any server. You are billed directly by Anthropic for usage.</div></div>'
+    +'<input type="password" class="form-input" style="max-width:340px" placeholder="sk-ant-api03-…" value="'+(localStorage.getItem(\'memora_akey\')||'')+'" aria-label="Anthropic API key" onchange="_saveApiKey(this.value)">'
+    +'<p style="font-size:12px;color:var(--text-3)">Get a free key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>'
+    +'</div></div>'
     +'<div class="settings-section" style="border-color:#FECACA">'
     +'<div class="settings-section-title" style="color:var(--danger)">Danger Zone</div>'
     +'<div class="settings-row"><div><div class="settings-row-label">Reset all data</div><div class="settings-row-sub">Delete all cards, sessions, and settings — cannot be undone</div></div>'
@@ -2129,7 +2558,7 @@ function handleCSVImport(file){
         addCard({
           type:['qa','cloze','formula'].includes(type)?type:'qa',
           question:q,answer:get(row,'answer'),hint:get(row,'hint'),
-          notes:get(row,'notes'),chapter:get(row,'chapter')||'',
+          notes:get(row,'notes'),chapter:get(row,'chapter')||'',reading:get(row,'reading')||'',
           cfaLevel:['L1','L2','L3'].includes(level)?level:'L1',
           topicId:tid&&getAllTopics().find(t=>t.id===tid)?tid:null
         });added++;
@@ -2188,7 +2617,7 @@ function _updateOfflineBanner(){const b=document.getElementById('offlineBanner')
 document.addEventListener('keydown',e=>{
   if(session.active){
     const tag=e.target.tagName;
-    if(e.code==='Space'&&!session.flipped&&!['INPUT','TEXTAREA','SELECT','BUTTON'].includes(tag)){e.preventDefault();flipCard();return;}
+    if(e.code==='Space'&&!session.flipped&&!['INPUT','TEXTAREA','SELECT','BUTTON'].includes(tag)&&session.current&&session.current.type!=='essay'){e.preventDefault();flipCard();return;}
     if(session.flipped&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){
       if(e.key==='1'){e.preventDefault();rateCard('again');}
       else if(e.key==='2'){e.preventDefault();rateCard('hard');}
