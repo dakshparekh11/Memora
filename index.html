@@ -214,6 +214,40 @@ a:hover{text-decoration:underline;}
   .formula-ref-card{break-inside:avoid;}
 }
 
+
+/* ── FILTER BAR ─────────────────────────────────────────────── */
+.filter-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-3);}
+.filter-bar-label{font-size:11.5px;font-weight:600;color:var(--text-3);margin-right:2px;white-space:nowrap;}
+.filter-pill{
+  border:1.5px solid var(--border-strong);background:none;border-radius:999px;
+  padding:4px 14px;font-size:12px;font-weight:600;cursor:pointer;
+  font-family:inherit;color:var(--text-2);transition:all .12s;white-space:nowrap;
+}
+.filter-pill:hover{background:var(--hover);}
+.filter-pill.active{background:var(--accent-muted);border-color:var(--accent);color:var(--accent);}
+.filter-select-sm{
+  height:30px;border:1.5px solid var(--border-strong);border-radius:var(--r-md);
+  background:var(--panel-bg);color:var(--text-2);font-size:12px;font-weight:600;
+  font-family:inherit;padding:0 28px 0 10px;cursor:pointer;outline:none;
+  appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  transition:border-color .12s;
+}
+.filter-select-sm:hover{border-color:var(--accent);}
+.filter-active-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--accent-muted);color:var(--accent);
+  border:1px solid rgba(var(--accent-rgb),.2);
+  border-radius:999px;font-size:11.5px;font-weight:600;
+  padding:3px 10px 3px 12px;
+}
+.filter-active-badge button{
+  background:none;border:none;color:inherit;cursor:pointer;
+  font-size:14px;line-height:1;padding:0;margin-left:2px;opacity:.7;
+}
+.filter-active-badge button:hover{opacity:1;}
+.filter-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:var(--space-3);}
+
 /* Respect reduced motion */
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important;}}
 
@@ -1864,22 +1898,42 @@ function renderNav(){
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 function renderDashboard(c){
-  const today=todayISO(),due=getDueCards(),newCards=getNewCards();
-  const nAvail=Math.min(newCards.length,Math.max(0,(state.settings.newCardsPerDay||20)-getTodayNewCount()));
-  const totalDue=due.length+nAvail,streak=_calcStreak();
-  const topics=getAllTopics().filter(t=>state.cards.some(cc=>cc.topicId===t.id));
-  const maxCnt=Math.max(...topics.map(t=>state.cards.filter(cc=>cc.topicId===t.id).length),1);
+  const today=todayISO();
+  const filtered=_dashCards();
+  const fDue=filtered.filter(cc=>!cc.isNew&&cc.dueDate&&cc.dueDate<=today);
+  const fNew=filtered.filter(cc=>cc.isNew);
+  const nLim=state.settings.newCardsPerDay||20;
+  const todayNewDone=state.cards.filter(c=>!c.isNew&&c.lastReviewed===today&&c.reps===1).length;
+  const nAvail=Math.min(fNew.length,Math.max(0,nLim-todayNewDone));
+  const totalDue=fDue.length+nAvail,streak=_calcStreak();
+  const isFiltered=!!(_dashF.level||_dashF.topicId);
 
-  const topicHtml=topics.slice(0,8).map(t=>{
-    const cnt=state.cards.filter(cc=>cc.topicId===t.id).length;
-    const dueT=state.cards.filter(cc=>cc.topicId===t.id&&!cc.isNew&&cc.dueDate&&cc.dueDate<=today).length;
+  const levelTopics=_dashF.level?CFA_TOPICS[_dashF.level]||[]:getAllTopics();
+  const topics=levelTopics.filter(t=>filtered.some(cc=>cc.topicId===t.id));
+  const maxCnt=Math.max(...topics.map(t=>filtered.filter(cc=>cc.topicId===t.id).length),1);
+
+  const filterBar=
+    '<div class="filter-row">'
+    +'<div class="filter-bar">'
+    +'<span class="filter-bar-label">Level:</span>'
+    +['L1','L2','L3'].map(l=>'<button class="filter-pill'+(_dashF.level===l?' active':'')+
+      '" onclick="_setDashLevel(\''+l+'\')" aria-pressed="'+(_dashF.level===l)+'">'+l+'</button>').join('')
+    +(_dashF.level?_topicDropdown(_dashF.level,_dashF.topicId,'_setDashTopic'):'')
+    +(_dashF.level?'<button class="filter-pill" style="border-color:var(--danger);color:var(--danger)" onclick="_dashF={level:\'\',topicId:\'\'};renderDashboard(document.getElementById(\'mainContent\'))">✕ Clear</button>':'')
+    +'</div>'
+    +(isFiltered?'<span style="font-size:11.5px;color:var(--text-3)">'+filtered.length+' card'+(filtered.length!==1?'s':'')+' matched</span>':'')
+    +'</div>';
+
+  const topicHtml=topics.map(t=>{
+    const cnt=filtered.filter(cc=>cc.topicId===t.id).length;
+    const dueT=filtered.filter(cc=>cc.topicId===t.id&&!cc.isNew&&cc.dueDate&&cc.dueDate<=today).length;
     return'<div class="topic-row">'
       +'<div class="topic-dot" style="background:'+t.color+'"></div>'
       +'<div class="topic-name" title="'+esc(t.name)+'">'+esc(t.name.length>26?t.name.slice(0,26)+'…':t.name)+'</div>'
       +'<div class="topic-bar-wrap"><div class="topic-bar-fill" style="width:'+Math.round(cnt/maxCnt*100)+'%;background:'+t.color+'"></div></div>'
       +'<div class="topic-count">'+cnt+' card'+(cnt!==1?'s':'')+(dueT>0?' · <span style="color:var(--danger);font-weight:700">'+dueT+' due</span>':'')+'</div>'
       +'</div>';
-  }).join('')||'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No cards yet. <a href="#" onclick="setView(\'add-card\');return false">Add your first card →</a></p>';
+  }).join('')||'<p style="color:var(--text-3);font-size:13px;padding:12px 0">'+(isFiltered?'No cards match this filter.':'No cards yet. <a href="#" onclick="setView(\'add-card\');return false">Add your first card →</a>')+'</p>';
 
   const examDate=state.settings.examDate;
   let countdownHtml='';
@@ -1908,12 +1962,12 @@ function renderDashboard(c){
     +(totalDue>0?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg> Start Review — '+totalDue+' card'+(totalDue!==1?'s':'')+' ready':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> All caught up for today!')
     +'</button>'
     +'<div class="stats-grid">'
-    +_sc(due.length,'Due Today','reviews scheduled',null)
-    +_sc(nAvail,'New Cards','of '+(state.settings.newCardsPerDay||20)+'/day limit','#10B981')
+    +_sc(fDue.length,'Due Today','reviews scheduled',null)
+    +_sc(nAvail,'New Cards','of '+nLim+'/day limit','#10B981')
     +_sc(streak,'Streak','day'+(streak!==1?'s':'')+' in a row','#F59E0B')
-    +_sc(state.cards.length,'Total Cards','in your deck','#8B5CF6')
+    +_sc(filtered.length,'Total Cards','in your deck','#8B5CF6')
     +'</div>'
-    +'<div class="section-title">By Topic</div>'+topicHtml
+    +'<div class="section-title">By Topic</div>'+filterBar+topicHtml
     +'<div class="section-title" style="margin-top:28px">Study Activity</div>'
     +_renderHeatmapSection('_dashHmGrid');
 }
@@ -2351,27 +2405,43 @@ function renderProgress(c){
     +'</div>'
 
     +'<div class="section-title">Retention by Topic</div>'
-    +(tRows.length?tRows.map(({t,cnt,pct})=>
-      '<div class="topic-progress-row">'
-      +'<div class="topic-progress-name"><span class="topic-dot" style="background:'+t.color+';display:inline-block;margin-right:8px;vertical-align:middle"></span>'+esc(t.name.length>22?t.name.slice(0,22)+'…':t.name)+'</div>'
-      +'<div class="topic-progress-bar-wrap"><div class="topic-progress-bar" style="width:'+pct+'%;background:'+t.color+'"></div></div>'
-      +'<div class="topic-progress-pct" style="color:'+t.color+'">'+pct+'%</div>'
-      +'<div class="topic-progress-cnt">'+cnt+' cards</div>'
-      +'</div>'
-    ).join(''):'<p style="color:var(--text-3);font-size:13px;padding:12px 0">Add cards with topics to see retention stats.</p>')
+    +_levelPills(_progTopicF.level,'_setProgTopicLevel')
+    +(()=>{
+      let rows=tRows;
+      if(_progTopicF.level)rows=rows.filter(({t})=>{
+        const lvlTopics=CFA_TOPICS[_progTopicF.level]||[];
+        return lvlTopics.some(lt=>lt.id===t.id);
+      });
+      if(!rows.length)return'<p style="color:var(--text-3);font-size:13px;padding:12px 0">'+(tRows.length?'No topics match this level filter.':'Add cards with topics to see retention stats.')+'</p>';
+      return rows.map(({t,cnt,pct})=>
+        '<div class="topic-progress-row">'
+        +'<div class="topic-progress-name"><span class="topic-dot" style="background:'+t.color+';display:inline-block;margin-right:8px;vertical-align:middle"></span>'+esc(t.name.length>22?t.name.slice(0,22)+'…':t.name)+'</div>'
+        +'<div class="topic-progress-bar-wrap"><div class="topic-progress-bar" style="width:'+pct+'%;background:'+t.color+'"></div></div>'
+        +'<div class="topic-progress-pct" style="color:'+t.color+'">'+pct+'%</div>'
+        +'<div class="topic-progress-cnt">'+cnt+' cards</div>'
+        +'</div>'
+      ).join('');
+    })()
 
     +(()=>{
-      const readings=[...new Set(state.cards.filter(c=>c.reading).map(c=>c.reading))].sort();
-      if(!readings.length)return'';
+      let rCards=state.cards.filter(c=>c.reading);
+      if(!rCards.length)return'';
+      if(_progReadF.level)rCards=rCards.filter(c=>c.cfaLevel===_progReadF.level);
+      if(_progReadF.topicId)rCards=rCards.filter(c=>c.topicId===_progReadF.topicId);
+      const readings=[...new Set(rCards.map(c=>c.reading))].sort();
+      const levelPills=_levelPills(_progReadF.level,'_setProgReadLevel',
+        _progReadF.level?_topicDropdown(_progReadF.level,_progReadF.topicId,'_setProgReadTopic'):null);
+      if(!readings.length)return'<div class="section-title" style="margin-top:28px">By Reading</div>'+levelPills
+        +'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No readings match this filter.</p>';
       const rows=readings.map(r=>{
-        const rc=state.cards.filter(c=>c.reading===r);
+        const rc=rCards.filter(c=>c.reading===r);
         const mat=rc.filter(c=>!c.isNew&&c.reps>=3).length;
         const pct=rc.length?Math.round(mat/rc.length*100):0;
         return'<div class="reading-row"><div class="reading-row-name" title="'+esc(r)+'">'+esc(r.length>36?r.slice(0,36)+'…':r)+'</div>'
           +'<div class="reading-bar-wrap"><div class="reading-bar-fill" style="width:'+pct+'%"></div></div>'
           +'<div class="reading-pct">'+pct+'%</div><div class="reading-cnt">'+rc.length+' cards</div></div>';
       });
-      return'<div class="section-title" style="margin-top:28px">By Reading</div>'+rows.join('');
+      return'<div class="section-title" style="margin-top:28px">By Reading</div>'+levelPills+rows.join('');
     })()
     +'<div class="section-title" style="margin-top:28px">Study Activity</div>'+_renderHeatmapSection('_progHmGrid')
 
@@ -2399,6 +2469,56 @@ function renderProgress(c){
 
 // ── FORMULA SHEET ─────────────────────────────────────────────
 let _fsSearch='';
+// ── FILTER STATE ──────────────────────────────────────────────
+let _dashF={level:'',topicId:''};
+let _progTopicF={level:''};
+let _progReadF={level:'',topicId:''};
+
+function _dashCards(base){
+  let c=base||state.cards;
+  if(_dashF.level)c=c.filter(x=>x.cfaLevel===_dashF.level);
+  if(_dashF.topicId)c=c.filter(x=>x.topicId===_dashF.topicId);
+  return c;
+}
+function _setDashLevel(l){
+  _dashF.level=_dashF.level===l?'':l;
+  _dashF.topicId='';
+  renderDashboard(document.getElementById('mainContent'));
+}
+function _setDashTopic(v){
+  _dashF.topicId=v;
+  renderDashboard(document.getElementById('mainContent'));
+}
+function _setProgTopicLevel(l){
+  _progTopicF.level=_progTopicF.level===l?'':l;
+  renderProgress(document.getElementById('mainContent'));
+}
+function _setProgReadLevel(l){
+  _progReadF.level=_progReadF.level===l?'':l;
+  _progReadF.topicId='';
+  renderProgress(document.getElementById('mainContent'));
+}
+function _setProgReadTopic(v){
+  _progReadF.topicId=v;
+  renderProgress(document.getElementById('mainContent'));
+}
+function _levelPills(active,onClickFn,extra){
+  return'<div class="filter-bar">'+(extra||'')
+    +['L1','L2','L3'].map(l=>'<button class="filter-pill'+(active===l?' active':'')
+      +'" onclick="'+onClickFn+'(\''+l+'\')" aria-pressed="'+(active===l)+'">'+l+'</button>').join('')
+    +(active?'<button class="filter-pill" onclick="'+onClickFn+'(\''+active+'\')" style="border-color:var(--danger);color:var(--danger)">✕ Clear</button>':'')
+    +'</div>';
+}
+function _topicDropdown(level,activeId,onChangeFn){
+  if(!level)return'';
+  const topics=(CFA_TOPICS[level]||[]).filter(t=>state.cards.some(c=>c.topicId===t.id&&(!level||c.cfaLevel===level)));
+  if(!topics.length)return'';
+  return'<select class="filter-select-sm" onchange="'+onChangeFn+'(this.value)">'
+    +'<option value="">All Topics</option>'
+    +topics.map(t=>'<option value="'+t.id+'"'+(activeId===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join('')
+    +'</select>';
+}
+
 function renderFormulaSheet(c){
   const fCards=state.cards.filter(cc=>cc.type==='formula');
   c.innerHTML=_mmBtn()+'<div class="view-title">Formula Sheet</div>'
