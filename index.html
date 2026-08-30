@@ -1533,7 +1533,8 @@ let session={
   vigSubIdx:0,vigAllDone:false,
   essayText:'',essayRevealed:false,essayFeedback:null,essayFeedbackLoading:false,
   timedMode:false,timedSeconds:90,timedRemaining:90,timedExpired:false,_timedTimer:null,
-  timedStats:{onTime:0,overtime:0}
+  timedStats:{onTime:0,overtime:0},
+  _sessionSaved:false
 };
 
 function buildTimedDeck(){return buildSRSDeck();}
@@ -1549,7 +1550,8 @@ function startSession(mode,opts={}){
     vigSubIdx:0,vigAllDone:false,
     essayText:'',essayRevealed:false,essayFeedback:null,essayFeedbackLoading:false,
     timedMode:isTimed,timedSeconds:ts,timedRemaining:ts,timedExpired:false,_timedTimer:null,
-    timedStats:{onTime:0,overtime:0}
+    timedStats:{onTime:0,overtime:0},
+    _sessionSaved:false
   };
   document.getElementById('reviewOverlay').style.display='flex';
   document.body.style.overflow='hidden';
@@ -1643,7 +1645,7 @@ function undoLastRating(){
 function closeReview(){
   clearInterval(session._timer);
   clearInterval(session._timedTimer);
-  if(session.done.length){
+  if(session.done.length&&!session._sessionSaved){
     const dur=Math.floor((Date.now()-session.startTime)/1000);
     state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
     save();
@@ -1657,7 +1659,11 @@ function _endSession(){
   clearInterval(session._timer);
   const dur=Math.floor((Date.now()-session.startTime)/1000);
   clearInterval(session._timedTimer);
-  if(session.done.length){state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});save();}
+  if(session.done.length){
+    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
+    save();
+  }
+  session._sessionSaved=true;
   _renderSessionSummary(session.done.length,dur);
 }
 function _updateReviewHeader(){
