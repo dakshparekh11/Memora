@@ -107,7 +107,7 @@ a:hover{text-decoration:underline;}
   font-size:9.5px;font-weight:800;text-transform:uppercase;
   letter-spacing:.14em;color:var(--accent);margin-bottom:6px;
 }
-.vignette-passage-text{font-size:13.5px;line-height:1.7;color:var(--text-2);}
+.vignette-passage-text{font-size:13.5px;line-height:1.7;color:var(--text-2);white-space:pre-wrap;word-break:break-word;}
 .subq-dots{display:flex;gap:5px;margin-bottom:var(--space-2);width:100%;max-width:600px;}
 .subq-dot{height:3px;flex:1;border-radius:var(--r-full);background:var(--border-strong);transition:background .2s;}
 .subq-dot.done{background:var(--success);}
@@ -180,8 +180,8 @@ a:hover{text-decoration:underline;}
 .formula-group-header{font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:var(--space-2);display:flex;align-items:center;gap:7px;}
 .formula-group-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .formula-ref-card{padding:var(--space-3) var(--space-4);border:1px solid var(--border);border-radius:var(--r-lg);background:var(--panel-bg);margin-bottom:var(--space-2);}
-.formula-ref-front{font-size:15px;color:var(--text);margin-bottom:var(--space-1);}
-.formula-ref-back{font-size:13px;color:var(--text-2);line-height:1.55;padding-top:var(--space-2);border-top:1px solid var(--border);}
+.formula-ref-front{font-size:15px;color:var(--text);margin-bottom:var(--space-1);white-space:pre-wrap;word-break:break-word;}
+.formula-ref-back{font-size:13px;color:var(--text-2);line-height:1.55;padding-top:var(--space-2);border-top:1px solid var(--border);white-space:pre-wrap;word-break:break-word;}
 .formula-print-btn{background:none;border:1.5px solid var(--border-strong);border-radius:var(--r-md);padding:8px 16px;font-size:13px;font-weight:600;color:var(--text-2);font-family:inherit;cursor:pointer;transition:all .12s;min-height:44px;}
 .formula-print-btn:hover{background:var(--hover);border-color:var(--accent);color:var(--accent);}
 .formula-empty{text-align:center;padding:60px var(--space-5);color:var(--text-3);}
@@ -547,6 +547,7 @@ a:hover{text-decoration:underline;}
 .review-card-divider.a-divider{background:var(--success);}
 .review-card-content{
   font-size:18px;line-height:1.65;flex:1;color:var(--text);font-weight:400;
+  white-space:pre-wrap;word-break:break-word;
 }
 .review-card-content.formula-size{font-size:16px;}
 .review-card-image{
@@ -569,6 +570,7 @@ a:hover{text-decoration:underline;}
   border:1px solid rgba(var(--accent-rgb),.12);
   border-radius:var(--r-lg);padding:var(--space-3) var(--space-4);
   font-size:13.5px;line-height:1.6;color:var(--text-2);
+  white-space:pre-wrap;word-break:break-word;
 }
 .review-notes strong{color:var(--accent);}
 .review-hint-btn{
@@ -2175,7 +2177,7 @@ function renderAddCardView(c){
       subQuestions:editCard.subQuestions||[],
       cfaLevel:editCard.cfaLevel||'L1',topicId:editCard.topicId||null,imageData:editCard.imageData||null};
   }else if(!editId){
-    _cf={..._cf,question:'',answer:'',hint:'',notes:'',chapter:'',imageData:null};
+    _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:null};
   }
   const isEdit=!!editCard,topics=CFA_TOPICS[_cf.cfaLevel]||CFA_TOPICS.L1;
   const typeHints={
@@ -2296,7 +2298,9 @@ function _updateTopicSel(){
   sel.innerHTML='<option value="">No topic</option>'+(CFA_TOPICS[_cf.cfaLevel]||CFA_TOPICS.L1).map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('');_cf.topicId=null;
 }
 function _updateFPreview(){const el=document.getElementById('_fPreview');if(!el)return;el.textContent=_cf.question||'';renderKatexAll();}
+let _savingCard=false;
 function saveCard(editId){
+  if(_savingCard)return; // prevent double-submit
   if(_cf.type==='vignette'){
     if(!(_cf.passage||_cf.question).trim()){showSnackbar('Passage is required');return;}
     if(!_cf.subQuestions||_cf.subQuestions.length<1){showSnackbar('Add at least 1 sub-question');return;}
@@ -2304,13 +2308,15 @@ function saveCard(editId){
     if(!_cf.question.trim()){showSnackbar('Question is required');return;}
     if(!_cf.answer.trim()&&_cf.type!=='cloze'&&_cf.type!=='essay'){showSnackbar('Answer is required');return;}
   }
+  _savingCard=true;
   if(editId){
     updateCard(editId,{type:_cf.type,question:_cf.passage||_cf.question,answer:_cf.answer,hint:_cf.hint,notes:_cf.notes,chapter:_cf.chapter,reading:_cf.reading||'',passage:_cf.passage||'',subQuestions:_cf.subQuestions||[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:_cf.imageData});
     showSnackbar('Card updated ✓');
   }else{
     addCard({..._cf,question:_cf.passage||_cf.question});showSnackbar('Card added ✓');
   }
-  _cf.question='';_cf.answer='';_cf.hint='';_cf.notes='';_cf.chapter='';_cf.reading='';_cf.passage='';_cf.subQuestions=[];_cf.imageData=null;
+  _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:null};
+  setTimeout(()=>{_savingCard=false;},1500);
   setView('browse');
 }
 
