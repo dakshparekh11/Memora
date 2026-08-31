@@ -515,6 +515,7 @@ a:hover{text-decoration:underline;}
 .hm-legend-cell{width:11px;height:11px;border-radius:2px;flex-shrink:0;}
 
 /* ── REVIEW OVERLAY ──────────────────────────────────────── */
+.review-overlay:focus{outline:none;} /* programmatic focus only — no visible ring needed */
 .review-overlay{
   position:fixed;inset:0;z-index:200;background:var(--bg);
   display:flex;flex-direction:column;overflow:hidden;
@@ -1168,7 +1169,7 @@ textarea.form-input{min-height:96px;}
 </div>
 
 <!-- REVIEW OVERLAY -->
-<div id="reviewOverlay" class="review-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Review session">
+<div id="reviewOverlay" class="review-overlay" style="display:none" tabindex="-1" role="dialog" aria-modal="true" aria-label="Review session">
   <div class="review-header">
     <button class="review-close" id="reviewCloseBtn" aria-label="Exit review">← Exit</button>
     <div class="review-progress-text" id="reviewProgressText" aria-live="polite">0 / 0</div>
@@ -1720,6 +1721,13 @@ function startSession(mode,opts={}){
   };
   document.getElementById('reviewOverlay').style.display='flex';
   document.body.style.overflow='hidden';
+  // FOCUS FIX: the button that launched this session (e.g. "Start Review") keeps
+  // browser focus after the overlay appears. Pressing Space would then fire a native
+  // click on that button (standard browser behaviour for focused <button> elements),
+  // re-invoking startSession() instead of flipping the card.
+  // Moving focus onto the overlay itself (tabindex="-1") captures keyboard events
+  // immediately so Space correctly routes to the flip handler from card one onward.
+  requestAnimationFrame(()=>document.getElementById('reviewOverlay').focus());
   session._timer=setInterval(()=>{const el=document.getElementById('reviewTimer');if(el)el.textContent=fmtTime(Math.floor((Date.now()-session.startTime)/1000));},1000);
 
   // Pause the timed countdown when the user switches tabs; resume on return.
@@ -2956,7 +2964,15 @@ function _updateOfflineBanner(){const b=document.getElementById('offlineBanner')
 document.addEventListener('keydown',e=>{
   if(session.active){
     const tag=e.target.tagName;
-    if(e.code==='Space'&&!session.flipped&&!['INPUT','TEXTAREA','SELECT','BUTTON'].includes(tag)&&session.current&&session.current.type!=='essay'){e.preventDefault();flipCard();return;}
+    if(e.code==='Space'&&!session.flipped&&session.current&&session.current.type!=='essay'){
+      // Always preventDefault on Space during an active unflipped session.
+      // Without this, if focus somehow lands on a <button> outside the card
+      // (e.g. the "Start Review" button behind the overlay), the browser fires
+      // a native click on it — re-invoking startSession() instead of flipping.
+      e.preventDefault();
+      if(!['INPUT','TEXTAREA','SELECT','BUTTON'].includes(tag))flipCard();
+      return;
+    }
     if(session.flipped&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){
       if(e.key==='1'){e.preventDefault();rateCard('again');}
       else if(e.key==='2'){e.preventDefault();rateCard('hard');}
