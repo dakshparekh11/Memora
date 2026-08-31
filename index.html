@@ -1340,12 +1340,22 @@ function getTopicById(id){return getAllTopics().find(t=>t.id===id)||null;}
 function findLastIdx(arr,fn){for(let i=arr.length-1;i>=0;i--)if(fn(arr[i]))return i;return -1;}
 
 // ── SM-2 ALGORITHM ────────────────────────────────────────────
+// Rating map: Again=0, Hard=1, Good=2, Easy=3
+// Standard progression on Good: 1 → 6 → round(prev×EF) → …
+// Hard: interval × 1.2, minimum 2d when reps>0 (min 1 prevents 1.2 stall)
+// Easy: interval × EF × 1.3 bonus; EF +0.15 (Anki default)
+// Again: full reset (reps=0, interval=1, EF -0.2, lapse++)
 function sm2Rate(card,rKey){
   const rNum={again:0,hard:1,good:2,easy:3}[rKey];
   let{interval=1,easeFactor=2.5,reps=0,lapses=0}=card;
   if(rNum===0){lapses++;reps=0;interval=1;easeFactor=Math.max(1.3,easeFactor-.2);}
   else{
-    if(rNum===1){easeFactor=Math.max(1.3,easeFactor-.15);interval=reps===0?1:Math.max(1,Math.round(interval*1.2));}
+    if(rNum===1){
+      easeFactor=Math.max(1.3,easeFactor-.15);
+      // Bug fix: use Math.max(2,...) for reps>0 so Hard never stalls at 1-day
+      // intervals. round(1×1.2)=1 would loop the card at 1 day indefinitely.
+      interval=reps===0?1:Math.max(2,Math.round(interval*1.2));
+    }
     else if(rNum===2){if(reps===0)interval=1;else if(reps===1)interval=6;else interval=Math.round(interval*easeFactor);}
     else{if(reps===0)interval=4;else if(reps===1)interval=10;else interval=Math.round(interval*easeFactor*1.3);easeFactor=Math.min(2.5,easeFactor+.15);}
     reps++;
@@ -1390,7 +1400,14 @@ function renderKatexSoon(){
 // ── DECK BUILDERS ─────────────────────────────────────────────
 function getDueCards(){const t=todayISO();return state.cards.filter(c=>!c.isNew&&c.dueDate&&c.dueDate<=t);}
 function getNewCards(){return state.cards.filter(c=>c.isNew);}
-function getTodayNewCount(){return state.cards.filter(c=>!c.isNew&&c.lastReviewed===todayISO()&&c.reps===1).length;}
+function getTodayNewCount(){
+  // Count cards introduced today — i.e., were new and got their first review today.
+  // reps===1 → rated Hard/Good/Easy (advanced one step)
+  // reps===0 → rated Again (reset, but still reviewed today for the first time)
+  // Bug fix: old code used reps===1 only, missing Again'd new cards and
+  // allowing the user to introduce more new cards than the daily limit intended.
+  return state.cards.filter(c=>!c.isNew&&c.lastReviewed===todayISO()&&c.reps<=1).length;
+}
 function buildSRSDeck(){
   const nLim=state.settings.newCardsPerDay||20,rLim=state.settings.reviewCardsPerDay||100;
   const due=getDueCards().slice(0,rLim),newAvail=getNewCards().slice(0,Math.max(0,nLim-getTodayNewCount()));
@@ -2594,12 +2611,16 @@ function renderProgress(c){
     +'<div class="view-subtitle">Your CFA study analytics</div><hr class="view-divider">'
     +'<div class="stats-grid">'
     +_sc(totRev.toLocaleString(),'Total Reviews','cards all time',null)
-    +_sc(avgRet+'%','Avg Retention','good + easy rate','#10B981')
+    +_sc(avgRet+'%','Avg Retention','good+easy across SRS sessions','#10B981')
     +_sc(Math.round(totSec/3600)+'h','Study Time',Math.round(totSec/60)+' min total','#F59E0B')
     +_sc(mature,'Mature Cards','of '+state.cards.length+' total','#8B5CF6')
     +'</div>'
 
-    +'<div class="section-title">Retention by Topic</div>'
+    // "Maturity" = cards with reps≥3 (SM-2 graduated / mature).
+    // This is NOT the same as session retention (good+easy rate) — it measures
+    // how far through the SRS learning stages each card has progressed.
+    +'<div class="section-title">Maturity by Topic</div>'
+    +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">% of cards with ≥3 reviews (SM-2 mature)</div>'
     +_levelPills(_progTopicF.level,'_setProgTopicLevel')
     +(()=>{
       let rows=tRows;
@@ -2626,7 +2647,9 @@ function renderProgress(c){
       const readings=[...new Set(rCards.map(c=>c.reading))].sort();
       const levelPills=_levelPills(_progReadF.level,'_setProgReadLevel',
         _progReadF.level?_topicDropdown(_progReadF.level,_progReadF.topicId,'_setProgReadTopic'):null);
-      if(!readings.length)return'<div class="section-title" style="margin-top:28px">By Reading</div>'+levelPills
+      if(!readings.length)return'<div class="section-title" style="margin-top:28px">Maturity by Reading</div>'
+        +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">% of cards with ≥3 reviews (SM-2 mature)</div>'
+        +levelPills
         +'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No readings match this filter.</p>';
       const rows=readings.map(r=>{
         const rc=rCards.filter(c=>c.reading===r);
@@ -2634,9 +2657,11 @@ function renderProgress(c){
         const pct=rc.length?Math.round(mat/rc.length*100):0;
         return'<div class="reading-row"><div class="reading-row-name" title="'+esc(r)+'">'+esc(r.length>36?r.slice(0,36)+'…':r)+'</div>'
           +'<div class="reading-bar-wrap"><div class="reading-bar-fill" style="width:'+pct+'%"></div></div>'
-          +'<div class="reading-pct">'+pct+'%</div><div class="reading-cnt">'+rc.length+' cards</div></div>';
+          +'<div class="reading-pct" title="'+mat+' of '+rc.length+' cards mature">'+pct+'%</div><div class="reading-cnt">'+rc.length+' cards</div></div>';
       });
-      return'<div class="section-title" style="margin-top:28px">By Reading</div>'+levelPills+rows.join('');
+      return'<div class="section-title" style="margin-top:28px">Maturity by Reading</div>'
+        +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">% of cards with ≥3 reviews (SM-2 mature)</div>'
+        +levelPills+rows.join('');
     })()
     +'<div class="section-title" style="margin-top:28px">Study Activity</div>'+_renderHeatmapSection('_progHmGrid')
 
