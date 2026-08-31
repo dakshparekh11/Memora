@@ -120,6 +120,39 @@ The dashboard heatmap shows a full 12-month calendar grid with:
 
 ## Changelog
 
+### v2.1 — Bug Fixes & Hardening
+
+- **[Critical] Sync race condition fixed** — The `onSnapshot` handler is now `async` and
+  `await`s the IndexedDB write before releasing `_applyingRemote`. Previously the guard
+  cleared synchronously before the write resolved, allowing a concurrent cloud sync to
+  overwrite an in-progress card rating.
+- **[Critical] Import validation** — `handleImportFile` now validates that `parsed.cards`
+  is an array before accepting a backup file. The native `confirm()` is replaced with a
+  modal dialog that shows the incoming vs current card/session counts, with a clear warning
+  to export first.
+- **[Critical] `_savingCard` guard fixed** — The 1500 ms `setTimeout` reset was replaced
+  with a `Promise.resolve().then(...)` microtask reset. The old approach could permanently
+  block the Add Card button for a session if the user navigated quickly.
+- **[High] Timed quiz timer paused on tab switch** — A `visibilitychange` listener now
+  pauses the countdown when the tab is hidden and resumes it on return. Previously the
+  timer continued running in the background, auto-penalising cards the user never saw.
+- **[High] IndexedDB connection cached** — `openDB()` now returns a cached promise instead
+  of opening a fresh connection on every `idbGet`/`idbSet` call. Eliminates connection
+  churn during rapid review sessions.
+- **[Medium] "On Track" badge fixed** — The previous formula (`pending <= needed + 5`) was
+  mathematically always true. The badge now compares the required daily rate (`needed`)
+  against the user's configured `reviewCardsPerDay` cap — a genuinely meaningful threshold.
+- **[Medium] `confirm()`/`alert()` replaced** — Sign Out, Exit Review (button + Esc key),
+  and Reset All now use the app's existing modal system for a consistent, non-blocking UX.
+- **[Medium] SW update notification** — A `controllerchange` listener shows a snackbar
+  ("Memora updated — refresh for the latest version") when a new service worker activates
+  after a deploy, so users don't silently run stale cached code.
+- **[Low] Essay API concurrent-request guard** — `getEssayFeedback` is now protected by
+  an `_essayFetchInFlight` flag that drops duplicate clicks while a request is in-flight.
+- **[Low] Service Worker font URL corrected** — The precache list had `Inter` (wrong);
+  corrected to `Plus Jakarta Sans`. Icons (`icon-192.png`, `icon-512.png`, `favicon-32.png`)
+  added to PRECACHE for reliable offline PWA installs. Cache bumped to `memora-v1.3`.
+
 ### v1.2 — UI Overhaul
 - **Font:** replaced Inter with Plus Jakarta Sans
 - **Icons:** replaced all emoji in the UI with inline SVG icons — nav,

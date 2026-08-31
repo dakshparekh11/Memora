@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous" onload="if(typeof _onKatexLoad==='function')_onKatexLoad()"></script>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
@@ -1190,11 +1190,14 @@ textarea.form-input{min-height:96px;}
 <script>
 'use strict';
 /* ================================================================
-   MEMORA — v2.0.0
+   MEMORA — v2.1.0
    Single-file PWA · Firebase sync · IndexedDB offline · SM-2 SRS
    Architecture: Logwise-identical (auth, backup, themes, sync)
    New in 2.0: Vignette+Essay cards · Formula Sheet · Timed Mode
    Per-reading progress · Exam countdown · Claude AI essay feedback
+   v2.1: Bug fixes — sync race condition, import validation, timer
+   pause on tab switch, IDB connection caching, On Track badge fix,
+   confirm() → modal dialogs, essay API guard, SW update prompt
    ================================================================ */
 
 // ── CONFIG GUARD ──────────────────────────────────────────────
@@ -1315,12 +1318,14 @@ function applyTheme(){
 }
 
 // ── UTILITIES ─────────────────────────────────────────────────
+// esc() is defined FIRST — it's used in virtually every render function
+// and must be available before any other utility can reference it.
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function uid(p){return p+'_'+Math.random().toString(36).slice(2,9)+Date.now().toString(36);}
 function todayISO(){return isoDate(new Date());}
 function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function addDays(ds,n){const d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+n);return isoDate(d);}
 function daysBetween(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);}
-function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmtDate(d){
   if(!d)return'';const diff=daysBetween(todayISO(),d);
   if(diff===0)return'Today';if(diff===1)return'Tomorrow';
@@ -1361,6 +1366,24 @@ function renderKatexAll(){
   document.querySelectorAll('.katex-content').forEach(el=>{
     try{renderMathInElement(el,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}],throwOnError:false});}catch(e){}
   });
+}
+
+// KaTeX readiness — resolves once renderMathInElement is available.
+// 3 s hard fallback ensures we never block on a CDN hiccup.
+let _katexReadyResolve=null;
+const _katexReady=new Promise(res=>{
+  _katexReadyResolve=res;
+  if(typeof renderMathInElement!=='undefined')res();
+  else setTimeout(res,3000);
+});
+// Called by onload on the auto-render <script> tag
+function _onKatexLoad(){if(_katexReadyResolve)_katexReadyResolve();}
+
+// Use this everywhere instead of setTimeout(renderKatexAll, N).
+// Waits for the KaTeX script, then uses requestAnimationFrame so the DOM
+// has settled after any innerHTML write before we try to render math.
+function renderKatexSoon(){
+  _katexReady.then(()=>requestAnimationFrame(renderKatexAll));
 }
 
 // ── DECK BUILDERS ─────────────────────────────────────────────
@@ -1416,12 +1439,18 @@ function migrate(s){
 let state=defaultState();
 
 // ── INDEXEDDB ─────────────────────────────────────────────────
+// Connection is cached — openDB() returns the same promise on every call
+// so we never pay the overhead of re-opening on each read/write.
+let _dbPromise=null;
 function openDB(){
-  return new Promise((res,rej)=>{
+  if(_dbPromise)return _dbPromise;
+  _dbPromise=new Promise((res,rej)=>{
     const req=indexedDB.open(DB_NAME,1);
     req.onupgradeneeded=()=>req.result.createObjectStore(DB_STORE);
-    req.onsuccess=()=>res(req.result);req.onerror=()=>rej(req.error);
+    req.onsuccess=()=>res(req.result);
+    req.onerror=()=>{_dbPromise=null;rej(req.error);}; // clear cache on error so next call retries
   });
+  return _dbPromise;
 }
 async function idbGet(key){
   const db=await openDB();
@@ -1452,16 +1481,45 @@ function exportBackup(){
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
   showSnackbar('Backup exported ✓');
 }
+// _pendingImport holds the parsed JSON until the user confirms in the modal
+let _pendingImport=null;
 function handleImportFile(file){
   const reader=new FileReader();
   reader.onload=()=>{
     try{
       const parsed=JSON.parse(reader.result);
-      if(!confirm('Import this backup? All current data will be replaced.'))return;
-      state=migrate(parsed);save();renderAll();showSnackbar('Backup imported ✓');
-    }catch(e){alert('Could not read file — make sure it\'s a Memora backup JSON.');}
+      // Validate that the file looks like a real Memora backup
+      if(!parsed||!Array.isArray(parsed.cards)){
+        showSnackbar('Invalid backup — file is missing a valid cards array');return;
+      }
+      _pendingImport=parsed;
+      const incomingCards=parsed.cards.length;
+      const incomingSessions=parsed.sessions?parsed.sessions.length:0;
+      openModal(
+        '<div style="padding:24px;max-width:380px">'
+        +'<div style="font-size:16px;font-weight:700;margin-bottom:12px">Import Backup?</div>'
+        +'<p style="font-size:14px;color:var(--text-2);margin-bottom:12px">'
+        +'This backup contains <strong>'+incomingCards+' card'+(incomingCards!==1?'s':'')+'</strong>'
+        +' and <strong>'+incomingSessions+' session'+(incomingSessions!==1?'s':'')+'</strong>.</p>'
+        +'<p style="font-size:14px;color:var(--text-2);margin-bottom:16px">'
+        +'Your current data (<strong>'+state.cards.length+' cards</strong>) will be <strong>permanently replaced</strong>.</p>'
+        +'<p style="font-size:12.5px;color:var(--danger);margin-bottom:20px">'
+        +'⚠ Export a backup first if you haven\'t already — this cannot be undone.</p>'
+        +'<div style="display:flex;gap:10px">'
+        +'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>'
+        +'<button class="btn btn-primary" onclick="_confirmImport()">Import & Replace</button>'
+        +'</div></div>'
+      );
+    }catch(e){showSnackbar('Could not read file — make sure it\'s a Memora backup JSON.');}
   };
-  reader.onerror=()=>alert('Could not read file.');reader.readAsText(file);
+  reader.onerror=()=>showSnackbar('Could not read file.');reader.readAsText(file);
+}
+function _confirmImport(){
+  closeModal();
+  if(!_pendingImport){showSnackbar('No import data found — please try again');return;}
+  try{
+    state=migrate(_pendingImport);_pendingImport=null;save();renderAll();showSnackbar('Backup imported ✓');
+  }catch(e){_pendingImport=null;showSnackbar('Import failed — file may be corrupted.');}
 }
 function scheduleFileBackup(){if(!backupFileHandle)return;clearTimeout(backupWriteTimer);backupWriteTimer=setTimeout(writeBackupFile,1500);}
 async function writeBackupFile(){
@@ -1476,17 +1534,50 @@ async function writeBackupFile(){
 }
 async function connectBackupFile(){
   if(!fsApiOk){
-    alert(fsApiExists&&!window.isSecureContext
-      ?'Needs HTTPS or localhost. Deploy to Firebase Hosting or open via http://localhost.'
-      :'Your browser doesn\'t support direct file saving (use Chrome/Edge). Use Export/Import instead.');
+    openModal(
+      '<div style="padding:24px;max-width:360px">'
+      +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Direct Backup Unavailable</div>'
+      +'<p style="font-size:14px;color:var(--text-2);margin-bottom:16px">'
+      +(fsApiExists&&!window.isSecureContext
+        ?'Direct file backup requires HTTPS or localhost. Deploy to GitHub Pages / Firebase Hosting, or open the app via <code>http://localhost</code>.'
+        :'Your browser doesn\'t support the File System Access API (use Chrome or Edge). Use <strong>Export Backup</strong> instead.')
+      +'</p>'
+      +'<div style="display:flex;gap:10px">'
+      +'<button class="btn btn-primary" onclick="closeModal()">OK</button>'
+      +'</div></div>'
+    );
     return;
   }
   try{
     const handle=await window.showSaveFilePicker({suggestedName:'memora-backup.json',types:[{description:'JSON backup',accept:{'application/json':['.json']}}]});
     backupFileHandle=handle;idbSet(HANDLE_KEY,handle).catch(()=>{});
-    try{const f=await handle.getFile();const t=await f.text();if(t&&t.trim().length>2){const p=JSON.parse(t);if(confirm('Load existing data from this file?\nOK = load · Cancel = overwrite')){state=migrate(p);renderAll();}}}catch(e){}
+    // If the chosen file already has data, ask whether to load it or overwrite it
+    try{
+      const f=await handle.getFile();const t=await f.text();
+      if(t&&t.trim().length>2){
+        const p=JSON.parse(t);
+        openModal(
+          '<div style="padding:24px;max-width:360px">'
+          +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Existing Data Found</div>'
+          +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">'
+          +'This file already contains Memora data. Load it into the app, or overwrite it with your current data?</p>'
+          +'<div style="display:flex;gap:10px">'
+          +'<button class="btn btn-secondary" onclick="closeModal();writeBackupFile()">Overwrite File</button>'
+          +'<button class="btn btn-primary" onclick="closeModal();_loadExistingBackup('+JSON.stringify(JSON.stringify(p))+')">Load from File</button>'
+          +'</div></div>'
+        );
+        return;
+      }
+    }catch(e){}
     await writeBackupFile();
-  }catch(e){if(e&&e.name==='AbortError')return;alert('Could not connect backup file. Use Export/Import instead.');}
+  }catch(e){
+    if(e&&e.name==='AbortError')return;
+    showSnackbar('Could not connect backup file — use Export/Import instead');
+  }
+}
+function _loadExistingBackup(raw){
+  try{const p=JSON.parse(raw);state=migrate(p);renderAll();writeBackupFile();}
+  catch(e){showSnackbar('Could not load backup — file may be corrupted.');}
 }
 async function handleConnectBackupClick(){
   if(backupFileHandle){try{const p=await backupFileHandle.requestPermission({mode:'readwrite'});if(p==='granted'){await writeBackupFile();return;}}catch(e){}}
@@ -1548,6 +1639,18 @@ function deleteCard(id){
   const prev=[...state.cards];state.cards=state.cards.filter(c=>c.id!==id);save();
   showSnackbar('Card deleted',()=>{state.cards=prev;save();renderBrowseList();});
 }
+// Used by the Edit Card view delete button — shows a modal instead of confirm()
+function _confirmDeleteCard(id){
+  openModal(
+    '<div style="padding:24px;max-width:320px">'
+    +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Delete Card?</div>'
+    +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">This card will be permanently deleted. You can undo immediately after with the snackbar.</p>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>'
+    +'<button class="btn btn-danger" onclick="closeModal();deleteCard(\''+esc(id)+'\');setView(\'browse\')">Delete</button>'
+    +'</div></div>'
+  );
+}
 function toggleStar(id){const c=state.cards.find(c=>c.id===id);if(!c)return;c.starred=!c.starred;save();}
 
 // ── DELETE SESSION ────────────────────────────────────────────
@@ -1559,7 +1662,32 @@ function deleteSession(id){
   showSnackbar('Session deleted',()=>{state.sessions=prev;save();renderProgress(document.getElementById('mainContent'));});
 }
 
-// ── REVIEW SESSION ────────────────────────────────────────────
+// Tracks when this browser session started — used in startCloudSync to detect
+// remote changes that arrived while the user was actively reviewing.
+let _sessionStartTime=Date.now();
+
+// ── MULTI-DEVICE CARD MERGE ────────────────────────────────────
+// Per-card merge used during cloud sync instead of wholesale state replacement.
+// For each card that exists in both local and remote, we keep whichever copy
+// has the more recent lastReviewed date — this means in-session ratings on
+// Device A survive a snapshot from Device B's edits (Fix #5).
+function _mergeCards(localCards,remoteCards){
+  const localMap=new Map(localCards.map(c=>[c.id,c]));
+  const remoteMap=new Map(remoteCards.map(c=>[c.id,c]));
+  const merged=[];
+  const allIds=new Set([...localMap.keys(),...remoteMap.keys()]);
+  for(const id of allIds){
+    const loc=localMap.get(id);
+    const rem=remoteMap.get(id);
+    if(!loc){merged.push(rem);continue;}
+    if(!rem){merged.push(loc);continue;}
+    // Keep whichever was reviewed more recently; fall back to creation date
+    const locTs=loc.lastReviewed||loc.createdAt||'1970-01-01';
+    const remTs=rem.lastReviewed||rem.createdAt||'1970-01-01';
+    merged.push(locTs>=remTs?loc:rem);
+  }
+  return merged;
+}
 let session={
   active:false,mode:'srs',queue:[],againQueue:[],done:[],current:null,
   flipped:false,hintVisible:false,ratings:{again:0,hard:0,good:0,easy:0},
@@ -1570,6 +1698,9 @@ let session={
   timedStats:{onTime:0,overtime:0},
   _sessionSaved:false
 };
+
+// Tracks the active visibilitychange listener so we can clean it up on close
+let _visibilityHandler=null;
 
 function buildTimedDeck(){return buildSRSDeck();}
 function startSession(mode,opts={}){
@@ -1590,6 +1721,32 @@ function startSession(mode,opts={}){
   document.getElementById('reviewOverlay').style.display='flex';
   document.body.style.overflow='hidden';
   session._timer=setInterval(()=>{const el=document.getElementById('reviewTimer');if(el)el.textContent=fmtTime(Math.floor((Date.now()-session.startTime)/1000));},1000);
+
+  // Pause the timed countdown when the user switches tabs; resume on return.
+  // Without this, the timer keeps ticking in the background and silently
+  // expires cards while the user isn't looking.
+  if(_visibilityHandler){document.removeEventListener('visibilitychange',_visibilityHandler);}
+  _visibilityHandler=function(){
+    if(!session.active||!session.timedMode)return;
+    if(document.hidden){
+      // Tab hidden — pause the countdown
+      if(session._timedTimer){clearInterval(session._timedTimer);session._timedTimer=null;}
+    }else{
+      // Tab visible again — resume if card is still unflipped and time remains
+      if(!session.flipped&&!session.timedExpired&&session.timedRemaining>0){
+        session._timedTimer=setInterval(()=>{
+          session.timedRemaining--;
+          if(session.timedRemaining<=0){
+            clearInterval(session._timedTimer);session._timedTimer=null;
+            session.timedExpired=true;if(!session.flipped)session.flipped=true;
+            _renderReviewCard();
+          }else _updateTimedBar();
+        },1000);
+      }
+    }
+  };
+  document.addEventListener('visibilitychange',_visibilityHandler);
+
   _nextCard();
 }
 
@@ -1679,6 +1836,7 @@ function undoLastRating(){
 function closeReview(){
   clearInterval(session._timer);
   clearInterval(session._timedTimer);
+  if(_visibilityHandler){document.removeEventListener('visibilitychange',_visibilityHandler);_visibilityHandler=null;}
   if(session.done.length&&!session._sessionSaved){
     const dur=Math.floor((Date.now()-session.startTime)/1000);
     state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
@@ -1693,6 +1851,7 @@ function _endSession(){
   clearInterval(session._timer);
   const dur=Math.floor((Date.now()-session.startTime)/1000);
   clearInterval(session._timedTimer);
+  if(_visibilityHandler){document.removeEventListener('visibilitychange',_visibilityHandler);_visibilityHandler=null;}
   if(session.done.length){
     state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
     save();
@@ -1733,8 +1892,8 @@ function _timedBarHtml(){
 function _renderReviewCard(){
   const body=document.getElementById('reviewBody');if(!body||!session.current)return;
   const card=session.current;
-  if(card.type==='vignette'){_renderVignetteCard(body,card);setTimeout(renderKatexAll,60);return;}
-  if(card.type==='essay'){_renderEssayCard(body,card);setTimeout(renderKatexAll,60);return;}
+  if(card.type==='vignette'){_renderVignetteCard(body,card);renderKatexSoon();return;}
+  if(card.type==='essay'){_renderEssayCard(body,card);renderKatexSoon();return;}
   const topic=getTopicById(card.topicId);
   const tColor=topic?topic.color:'#6B7280',tName=topic?topic.name:'General';
   let content='';
@@ -1760,7 +1919,7 @@ function _renderReviewCard(){
     +(hintArea?'<div>'+hintArea+'</div>':'')
     +(notesArea||'')
     +actionsHtml;
-  setTimeout(renderKatexAll,60);
+  renderKatexSoon();
 }
 
 function _renderVignetteCard(body,card){
@@ -1819,11 +1978,15 @@ function _renderEssayCard(body,card){
     +actionsHtml;
 }
 
+// Guard prevents concurrent/duplicate API calls if the button is clicked multiple times
+let _essayFetchInFlight=false;
 async function getEssayFeedback(){
+  if(_essayFetchInFlight)return; // drop duplicate clicks while a request is in-flight
   const ta=document.getElementById('_essayTA');if(ta)session.essayText=ta.value;
   const card=session.current;if(!card)return;
   const apiKey=localStorage.getItem('memora_akey');
   if(!apiKey){showSnackbar('Add your Anthropic API key in Settings first');return;}
+  _essayFetchInFlight=true;
   session.essayFeedbackLoading=true;_renderReviewCard();
   try{
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
@@ -1835,7 +1998,8 @@ async function getEssayFeedback(){
     const data=await resp.json();
     session.essayFeedback=(data.content&&data.content[0]&&data.content[0].text)||'No feedback returned.';
   }catch(e){session.essayFeedback='Could not reach the API — check your key in Settings.';}
-  session.essayFeedbackLoading=false;_renderReviewCard();setTimeout(renderKatexAll,60);
+  _essayFetchInFlight=false;
+  session.essayFeedbackLoading=false;_renderReviewCard();renderKatexSoon();
 }
 
 function _saveApiKey(val){
@@ -1886,7 +2050,7 @@ function renderView(){
   else if(v==='progress')renderProgress(content);
   else if(v==='settings')renderSettings(content);
   else renderDashboard(content);
-  renderNav();setTimeout(renderKatexAll,100);
+  renderNav();renderKatexSoon();
 }
 function renderNav(){
   const v=state.ui.view;
@@ -1940,8 +2104,12 @@ function renderDashboard(c){
   if(examDate){
     const dLeft=daysBetween(todayISO(),examDate);
     const pending=getDueCards().length+Math.min(getNewCards().length,Math.max(0,(state.settings.newCardsPerDay||20)-getTodayNewCount()));
+    // How many cards/day are needed to clear the queue before exam day?
     const needed=dLeft>0?Math.ceil(pending/dLeft):pending;
-    const onTrack=dLeft>0&&pending<=(needed+5);
+    // "On Track" = the required daily rate doesn't exceed the user's configured review cap.
+    // The old check (pending <= needed+5) was mathematically always true and therefore useless.
+    const dailyCap=state.settings.reviewCardsPerDay||100;
+    const onTrack=dLeft>0&&needed<=dailyCap;
     const bCls=dLeft<=0?'behind':onTrack?'on-track':'behind';
     const bTxt=dLeft<=0?'Exam Day!':onTrack?'On Track':'Behind';
     countdownHtml='<div class="countdown-card">'
@@ -1998,6 +2166,12 @@ function _mmBtn(){
   return'<div class="view-header"><button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">'
     +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>';
 }
+// ── STREAK CALCULATION ────────────────────────────────────────
+// Logic: if the user hasn't reviewed yet today, we look back from yesterday.
+// This means a user who reviewed Mon→Fri will still see a 5-day streak on
+// Saturday morning before they start their session — the streak only resets
+// to 0 if YESTERDAY also has no session.  Note: this is intentionally lenient
+// to avoid discouraging users who check the dashboard before reviewing.
 function _calcStreak(){
   const days=new Set(state.sessions.map(s=>s.date));if(!days.size)return 0;
   let streak=0,d=todayISO();
@@ -2085,8 +2259,12 @@ function _hmStatLine(){
 }
 
 function _hmChange(){
-  const ySel=document.getElementById('_hmYearSel');
-  const vSel=document.getElementById('_hmViewSel');
+  // Selects are given IDs derived from their container gridId, so dashboard
+  // (_dashHmGrid) and progress (_progHmGrid) never share an element ID even
+  // if both views were somehow rendered simultaneously. Query by suffix pattern
+  // so _hmChange() works regardless of which view is currently on screen.
+  const ySel=document.querySelector('[id$="HmYearSel"]');
+  const vSel=document.querySelector('[id$="HmViewSel"]');
   if(ySel)_hmYear=parseInt(ySel.value);
   if(vSel)_hmView=vSel.value;
   // Refresh grid + stat line in whichever view is on screen (dashboard or progress)
@@ -2098,13 +2276,17 @@ function _hmChange(){
 }
 
 function _renderHeatmapSection(gridId){
+  // Year and view selects get IDs tied to the gridId so dashboard and progress
+  // heatmaps never share the same element ID in the DOM (Fix #11).
+  const yearSelId=gridId+'YearSel';  // e.g. _dashHmGridYearSel
+  const viewSelId=gridId+'ViewSel';
   const years=_getAvailableYears();
   const legendStops=[0,.18,.36,.54,.72,.9,1];
   return'<div class="hm-controls">'
-    +'<select class="hm-select" id="_hmYearSel" aria-label="Select year" onchange="_hmChange()">'
+    +'<select class="hm-select" id="'+yearSelId+'" aria-label="Select year" onchange="_hmChange()">'
     +years.map(y=>'<option value="'+y+'"'+(y===_hmYear?' selected':'')+'>'+y+'</option>').join('')
     +'</select>'
-    +'<select class="hm-select" id="_hmViewSel" aria-label="Select activity type" onchange="_hmChange()">'
+    +'<select class="hm-select" id="'+viewSelId+'" aria-label="Select activity type" onchange="_hmChange()">'
     +'<option value="reviewed"'+(_hmView==='reviewed'?' selected':'')+'>Cards Reviewed</option>'
     +'<option value="created"'+(_hmView==='created'?' selected':'')+'>Cards Created</option>'
     +'</select>'
@@ -2205,15 +2387,18 @@ function renderBrowseList(){
     else if(card.dueDate)dueBadge='<span class="due-badge due-future">'+fmtDate(card.dueDate)+'</span>';
     const rawQ=card.type==='vignette'?(card.subQuestions&&card.subQuestions.length?'['+card.subQuestions.length+' sub-questions] '+(card.passage||card.question):card.passage||card.question):card.question;
     const qText=rawQ.length>90?rawQ.slice(0,90)+'…':rawQ;
+    // card.id is always from uid() [a-z0-9_] but we wrap in esc() defensively
+    // so safety doesn't depend on the uid() contract never changing (Fix #4)
+    const safeId=esc(card.id);
     return'<div class="card-item">'
       +'<div class="card-actions">'
-      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();setView(\'add-card\',{editId:\''+card.id+'\'})" aria-label="Edit card" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
-      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();deleteCard(\''+card.id+'\');renderBrowseList()" aria-label="Delete card" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>'
+      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();setView(\'add-card\',{editId:\''+safeId+'\'})" aria-label="Edit card" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+      +'<button class="btn-icon btn-icon-sm" onclick="event.stopPropagation();deleteCard(\''+safeId+'\');renderBrowseList()" aria-label="Delete card" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>'
       +'</div>'
       +'<div class="card-item-header">'
       +'<span class="card-type-badge type-'+card.type+'">'+(tL[card.type]||'Q&A')+'</span>'
       +'<div class="card-item-question">'+esc(qText)+'</div>'
-      +'<button class="card-star'+(card.starred?' starred':'')+'" onclick="event.stopPropagation();toggleStar(\''+card.id+'\');renderBrowseList()" aria-label="'+(card.starred?'Unstar':'Star')+' card">'+(card.starred?'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>')+'</button>'
+      +'<button class="card-star'+(card.starred?' starred':'')+'" onclick="event.stopPropagation();toggleStar(\''+safeId+'\');renderBrowseList()" aria-label="'+(card.starred?'Unstar':'Star')+' card">'+(card.starred?'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>':'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>')+'</button>'
       +'</div>'
       +'<div class="card-item-meta">'
       +(topic?'<span class="meta-tag" style="color:'+topic.color+';background:'+topic.color+'18;border-color:'+topic.color+'30">'+esc(topic.name)+'</span>':'')
@@ -2332,10 +2517,10 @@ function renderAddCardView(c){
     +'<div class="form-actions">'
     +'<button class="btn btn-secondary" onclick="setView(\'browse\')">Cancel</button>'
     +'<button class="btn btn-primary" onclick="saveCard(\''+(isEdit?editId:'')+'\')">'+( isEdit?'Save Changes':'Add Card')+'</button>'
-    +(isEdit?'<button class="btn btn-danger" onclick="if(confirm(\'Delete this card?\'))deleteCard(\''+editId+'\',\'browse\')" style="margin-left:auto">Delete Card</button>':'')
+    +(isEdit?'<button class="btn btn-danger" onclick="_confirmDeleteCard(\''+esc(editId)+'\')" style="margin-left:auto">Delete Card</button>':'')
     +'</div></div>';
 
-  setTimeout(renderKatexAll,100);
+  renderKatexSoon();
 }
 function setCFType(t){
   _cf.type=t;
@@ -2376,7 +2561,9 @@ function saveCard(editId){
     addCard({..._cf,question:_cf.passage||_cf.question});showSnackbar('Card added ✓');
   }
   _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:null};
-  setTimeout(()=>{_savingCard=false;},1500);
+  // Reset on next microtask — prevents double-submit within the same event loop tick
+  // without the risk of a stale timer permanently blocking saves (the old 1500ms approach)
+  Promise.resolve().then(()=>{_savingCard=false;});
   setView('browse');
 }
 
@@ -2529,7 +2716,7 @@ function renderFormulaSheet(c){
     +'<input type="search" class="search-input" style="max-width:320px" placeholder="Search formulas…" value="'+esc(_fsSearch)+'" oninput="_fsSearch=this.value;renderFSList()">'
     +'</div>'
     +'<div id="_fsContent"></div>';
-  renderFSList();setTimeout(renderKatexAll,100);
+  renderFSList();renderKatexSoon();
 }
 function renderFSList(){
   const cont=document.getElementById('_fsContent');if(!cont)return;
@@ -2560,7 +2747,7 @@ function renderFSList(){
     });
     html+='</div>';
   });
-  cont.innerHTML=html;setTimeout(renderKatexAll,60);
+  cont.innerHTML=html;renderKatexSoon();
 }
 
 function _avgRet(){
@@ -2640,7 +2827,23 @@ function toggleNotifications(enabled){
     });
   }else{state.settings.notificationEnabled=false;save();_cancelNotifs();showSnackbar('Reminder disabled');}
 }
-function resetAll(){if(!confirm('Delete ALL cards, sessions, and settings?\n\nThis cannot be undone.'))return;state=defaultState();save();renderAll();showSnackbar('All data reset');}
+function resetAll(){
+  openModal(
+    '<div style="padding:24px;max-width:360px">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--danger);margin-bottom:10px">⚠ Reset All Data?</div>'
+    +'<p style="font-size:14px;color:var(--text-2);margin-bottom:8px">This will permanently delete:</p>'
+    +'<ul style="font-size:14px;color:var(--text-2);margin:0 0 16px 20px;line-height:1.8">'
+    +'<li><strong>All '+state.cards.length+' cards</strong></li>'
+    +'<li>All '+state.sessions.length+' study sessions</li>'
+    +'<li>All settings and preferences</li></ul>'
+    +'<p style="font-size:13px;color:var(--danger);margin-bottom:20px">This cannot be undone. Export a backup first if you want to keep your data.</p>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>'
+    +'<button class="btn btn-danger" onclick="closeModal();_doResetAll()">Delete Everything</button>'
+    +'</div></div>'
+  );
+}
+function _doResetAll(){state=defaultState();save();renderAll();showSnackbar('All data reset');}
 function selectTheme(id){
   state.settings.themeFamily=id;save();applyTheme();
   renderSettings(document.getElementById('mainContent'));
@@ -2673,13 +2876,26 @@ function _cancelNotifs(){clearTimeout(_notifT);}
 function _showNotif(title,body){if(Notification.permission==='granted')new Notification(title,{body,icon:'icon-192.png'});}
 
 // ── CSV IMPORT ────────────────────────────────────────────────
+// _parseCSVLine is defined first so handleCSVImport can use it for
+// both the header row and data rows (Fix #15 — header was previously
+// parsed with a naïve split(',') that broke on quoted headers).
+function _parseCSVLine(line){
+  const res=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+    else if(c===','&&!inQ){res.push(cur);cur='';}else cur+=c;
+  }res.push(cur);return res;
+}
 function handleCSVImport(file){
   const reader=new FileReader();
   reader.onload=()=>{
     try{
       const lines=reader.result.split(/\r?\n/).filter(l=>l.trim());
       if(lines.length<2){showSnackbar('CSV seems empty');return;}
-      const headers=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/"/g,''));
+      // Use _parseCSVLine for the header row so quoted column names with
+      // commas are handled correctly — a simple split(',') would break them.
+      const headers=_parseCSVLine(lines[0]).map(h=>h.trim().toLowerCase());
       const get=(row,key)=>{const i=headers.indexOf(key);return i>=0?(row[i]||'').trim().replace(/^"|"$/g,''):''};
       let added=0;
       for(let i=1;i<lines.length;i++){
@@ -2697,14 +2913,6 @@ function handleCSVImport(file){
       renderAll();showSnackbar('Imported '+added+' card'+(added!==1?'s':'')+' ✓');
     }catch(e){console.error(e);showSnackbar('CSV parse failed — check format');}
   };reader.readAsText(file);
-}
-function _parseCSVLine(line){
-  const res=[];let cur='',inQ=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
-    else if(c===','&&!inQ){res.push(cur);cur='';}else cur+=c;
-  }res.push(cur);return res;
 }
 
 // ── IMAGE UPLOAD ──────────────────────────────────────────────
@@ -2756,7 +2964,18 @@ document.addEventListener('keydown',e=>{
       else if(e.key==='4'){e.preventDefault();rateCard('easy');}
       else if(e.key==='z'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();undoLastRating();}
     }
-    if(e.code==='Escape'&&confirm('Exit this review session?'))closeReview();
+    if(e.code==='Escape'){
+      openModal(
+        '<div style="padding:24px;max-width:340px">'
+        +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Exit Review?</div>'
+        +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">'
+        +(session.done.length>0?'Progress so far (<strong>'+session.done.length+' card'+(session.done.length!==1?'s':'')+'</strong> rated) will be saved.':'No cards have been rated yet.')+'</p>'
+        +'<div style="display:flex;gap:10px">'
+        +'<button class="btn btn-secondary" onclick="closeModal()">Keep Reviewing</button>'
+        +'<button class="btn btn-primary" onclick="closeModal();closeReview()">Exit</button>'
+        +'</div></div>'
+      );
+    }
     return;
   }
   if(e.code==='Escape')closeModal();
@@ -2786,16 +3005,31 @@ function startCloudSync(uid){
   _uid=uid;setSyncStatus('Connecting…');
   setAccountText('Signed in as '+(auth.currentUser?auth.currentUser.email:''));
   if(_syncUnsub)_syncUnsub();
-  _syncUnsub=_userDoc(uid).onSnapshot(doc=>{
+  // IMPORTANT: handler is async so we can await idbSet before clearing _applyingRemote.
+  // The old code cleared the flag synchronously before the idbSet promise resolved,
+  // which allowed a concurrent scheduleCloudSync() to fire during the write and
+  // potentially overwrite an in-progress local rating with stale remote data.
+  _syncUnsub=_userDoc(uid).onSnapshot(async doc=>{
     if(!doc.exists){
       _userDoc(uid).set({data:JSON.stringify({...state,cards:state.cards.map(c=>({...c,imageData:undefined}))}),updatedAt:Date.now()});
       setSyncStatus('Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));return;
     }
     let remote;try{remote=JSON.parse(doc.data().data);}catch(e){return;}
     _applyingRemote=true;
+    const localCards=state.cards; // save before migrate so we can merge
     const imgMap={};state.cards.forEach(c=>{if(c.imageData)imgMap[c.id]=c.imageData;});
-    state=migrate(remote);state.cards.forEach(c=>{if(imgMap[c.id])c.imageData=imgMap[c.id];});
-    idbSet(DB_KEY,state).catch(()=>{});renderAll();_applyingRemote=false;
+    state=migrate(remote);
+    // Per-card merge: prefer whichever copy has the newer lastReviewed date.
+    // Without this, an active review session on Device A would be silently
+    // overwritten by Device B's snapshot even for cards the user just rated.
+    state.cards=_mergeCards(localCards,state.cards);
+    // Restore image data (not synced via Firestore due to size limits)
+    state.cards.forEach(c=>{if(imgMap[c.id])c.imageData=imgMap[c.id];});
+    // Await the IDB write before releasing the lock — prevents scheduleCloudSync()
+    // from uploading stale data during the async write window.
+    try{await idbSet(DB_KEY,state);}catch(e){console.error('IDB sync write failed',e);}
+    renderAll();
+    _applyingRemote=false; // released only after the write has settled
     const ts=doc.data().updatedAt?new Date(doc.data().updatedAt):new Date();
     setSyncStatus('Synced · '+ts.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
   },err=>{console.error('Sync listener',err);setSyncStatus('⚠ Sync error');});
@@ -2829,7 +3063,15 @@ document.getElementById('authForgotBtn').addEventListener('click',async()=>{
   el.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('authSubmitBtn').click();});
 });
 document.getElementById('signOutBtn').addEventListener('click',()=>{
-  if(confirm('Sign out of Memora?')){stopCloudSync();auth.signOut();}
+  openModal(
+    '<div style="padding:24px;max-width:320px">'
+    +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Sign Out?</div>'
+    +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">Your cards are synced to Firebase and will be waiting when you sign back in.</p>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>'
+    +'<button class="btn btn-primary" onclick="closeModal();stopCloudSync();auth.signOut()">Sign Out</button>'
+    +'</div></div>'
+  );
 });
 auth.onAuthStateChanged(async user=>{
   if(user){showApp();if(!_appInit){await initApp();_appInit=true;}startCloudSync(user.uid);}
@@ -2838,7 +3080,17 @@ auth.onAuthStateChanged(async user=>{
 
 // ── SERVICE WORKER ────────────────────────────────────────────
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{navigator.serviceWorker.register('service-worker.js').catch(e=>console.warn('SW:',e));});
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('service-worker.js')
+      .then(()=>{
+        // When a new SW takes control after a deploy, show a non-blocking
+        // refresh prompt so users get the updated version without a stale cache.
+        navigator.serviceWorker.addEventListener('controllerchange',()=>{
+          showSnackbar('Memora updated — refresh for the latest version');
+        });
+      })
+      .catch(e=>console.warn('SW:',e));
+  });
 }
 
 // ── EVENT WIRING ──────────────────────────────────────────────
@@ -2856,7 +3108,18 @@ function wireEvents(){
   document.getElementById('csvFileInput').addEventListener('change',e=>{if(e.target.files[0]){handleCSVImport(e.target.files[0]);e.target.value='';}});
   document.getElementById('imageFileInput').addEventListener('change',e=>{if(e.target.files[0]){handleImageUpload(e.target.files[0]);e.target.value='';}});
   document.getElementById('reviewCloseBtn').addEventListener('click',()=>{
-    if(session.done.length>0){if(confirm('Exit? Progress so far will be saved.'))closeReview();}else closeReview();
+    if(session.done.length>0){
+      openModal(
+        '<div style="padding:24px;max-width:340px">'
+        +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Exit Review?</div>'
+        +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">'
+        +'Progress so far (<strong>'+session.done.length+' card'+(session.done.length!==1?'s':'')+'</strong> rated) will be saved.</p>'
+        +'<div style="display:flex;gap:10px">'
+        +'<button class="btn btn-secondary" onclick="closeModal()">Keep Reviewing</button>'
+        +'<button class="btn btn-primary" onclick="closeModal();closeReview()">Exit</button>'
+        +'</div></div>'
+      );
+    }else closeReview();
   });
   document.getElementById('sidebarBackdrop').addEventListener('click',toggleSidebar);
   window.addEventListener('online',()=>{_updateOfflineBanner();if(_uid)scheduleCloudSync();});

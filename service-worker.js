@@ -4,7 +4,7 @@
    Cache-First for app shell · Network-only for Firebase
    ================================================================ */
 
-const CACHE_NAME = 'memora-v1.2';
+const CACHE_NAME = 'memora-v1.3';
 
 // Detect base path automatically — works for both
 //   https://username.github.io/memora/   (GitHub Pages)
@@ -16,8 +16,12 @@ const PRECACHE = [
   BASE + 'index.html',
   BASE + 'manifest.json',
   BASE + 'config.js',
-  // CDN assets
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+  // App icons (needed for offline PWA install prompt and splash screens)
+  BASE + 'icon-192.png',
+  BASE + 'icon-512.png',
+  BASE + 'favicon-32.png',
+  // CDN assets — font corrected to Plus Jakarta Sans (was wrongly Inter in v1.2)
+  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
   'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',
   'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js',
   'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js',
