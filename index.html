@@ -873,6 +873,14 @@ textarea.form-input{min-height:96px;}
 }
 .mode-card:hover{border-color:rgba(var(--accent-rgb),.4);}
 .mode-card.active{border-color:var(--accent);background:var(--accent-muted);}
+/* SRS "done today" card — dimmed, non-interactive, shows a badge */
+.mode-card.done{opacity:.48;position:relative;}
+.mode-card.done:hover{border-color:var(--border);cursor:not-allowed;}
+.mode-done-badge{
+  display:inline-block;margin-top:7px;font-size:10.5px;font-weight:700;
+  color:#059669;background:rgba(5,150,105,.13);border:1px solid rgba(5,150,105,.28);
+  border-radius:99px;padding:2px 9px;letter-spacing:.01em;
+}
 .mode-icon{font-size:28px;margin-bottom:var(--space-2);}
 .mode-title{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--text);}
 .mode-desc{font-size:12px;color:var(--text-2);line-height:1.4;}
@@ -1720,9 +1728,24 @@ let session={
 // Tracks the active visibilitychange listener so we can clean it up on close
 let _visibilityHandler=null;
 
-function buildTimedDeck(){return buildSRSDeck();}
+// Timed Quiz deck — independent from SRS queue.
+// Works like Cram (all cards, shuffled) but plays with a per-card countdown.
+// Completely unlimited: can be run as many times per day as the user wants.
+function buildTimedDeck(topicId,level){
+  let cards=[...state.cards];
+  if(topicId)cards=cards.filter(c=>c.topicId===topicId);
+  if(level)cards=cards.filter(c=>c.cfaLevel===level);
+  for(let i=cards.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cards[i],cards[j]]=[cards[j],cards[i]];}
+  return cards;
+}
 function startSession(mode,opts={}){
-  let deck=mode==='srs'||mode==='timed'?buildSRSDeck():mode==='cram'?buildCramDeck(opts.topicId,opts.level):buildWeakDeck();
+  // Hard lock: SRS is once-per-day. Every entry point checks hasDoneSRSToday()
+  // but we defend here too as a last-resort guard for any unexpected code path.
+  if(mode==='srs'&&hasDoneSRSToday()){
+    showSnackbar('SRS already completed for today — use Cram, Weak, or Timed instead');
+    return;
+  }
+  let deck=mode==='srs'?buildSRSDeck():mode==='timed'?buildTimedDeck(opts.topicId,opts.level):mode==='cram'?buildCramDeck(opts.topicId,opts.level):buildWeakDeck();
   if(!deck.length){showSnackbar('No cards available for this mode');return;}
   clearInterval(session._timer);clearInterval(session._timedTimer);
   const isTimed=mode==='timed',ts=state.settings.timedSeconds||90;
@@ -2332,41 +2355,90 @@ function _renderHeatmapSection(gridId){
 }
 
 // ── REVIEW SELECT ─────────────────────────────────────────────
-let _selMode='srs',_cramTopic=null,_cramLevel=null;
+let _selMode='srs',_cramTopic=null,_cramLevel=null,_timedTopic=null,_timedLevel=null;
+// Returns true if the user has already completed an SRS session today.
+// Used to lock the SRS card to once-per-day (other modes remain unlimited).
+function hasDoneSRSToday(){
+  return state.sessions.some(s=>s.date===todayISO()&&s.mode==='srs');
+}
+
 function renderReviewSelect(c){
   const due=getDueCards().length,nAvail=Math.min(getNewCards().length,Math.max(0,(state.settings.newCardsPerDay||20)-getTodayNewCount()));
   const weak=state.cards.filter(cc=>cc.lapses>=2).length;
+  const srsCompleted=hasDoneSRSToday();
+  // When SRS is already done today, start with Cram selected by default
+  const defMode=srsCompleted?'cram':'srs';
+
+  // SRS card — done-today state vs normal state
+  const srsCard=srsCompleted
+    ?'<div class="mode-card done" onclick="showSnackbar(\'SRS already completed for today ✓ — use Cram, Weak, or Timed for extra practice\')" title="SRS completed today">'
+      +'<div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg></div>'
+      +'<div class="mode-title">SRS Review</div>'
+      +'<div class="mode-desc">'+due+' due + '+nAvail+' new cards</div>'
+      +'<div class="mode-done-badge">Done Today ✓</div>'
+      +'</div>'
+    :'<div class="mode-card active" onclick="selectMode(\'srs\',this)">'
+      +'<div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg></div>'
+      +'<div class="mode-title">SRS Review</div>'
+      +'<div class="mode-desc">'+due+' due + '+nAvail+' new cards</div>'
+      +'</div>';
+
   c.innerHTML=_mmBtn()+'<div class="view-title">Review</div></div>'
     +'<div class="view-subtitle">Choose your study mode</div><hr class="view-divider">'
     +'<div class="mode-grid">'
-    +'<div class="mode-card active" onclick="selectMode(\'srs\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16M2 12h20"/></svg></div><div class="mode-title">SRS Review</div><div class="mode-desc">'+due+' due + '+nAvail+' new cards</div></div>'
-    +'<div class="mode-card" onclick="selectMode(\'cram\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="mode-title">Cram Mode</div><div class="mode-desc">Review any topic, anytime</div></div>'
+    +srsCard
+    +'<div class="mode-card'+(defMode==='cram'?' active':'')+'" onclick="selectMode(\'cram\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="mode-title">Cram Mode</div><div class="mode-desc">Review any topic, anytime</div></div>'
     +'<div class="mode-card" onclick="selectMode(\'weak\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="mode-title">Weak Cards</div><div class="mode-desc">'+weak+' card'+(weak!==1?'s':'')+' with 2+ lapses</div></div>'
-    +'<div class="mode-card" onclick="selectMode(\'timed\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="mode-title">Timed Quiz</div><div class="mode-desc">'+(state.settings.timedSeconds||90)+'s/card · exam pacing</div></div>'
+    +'<div class="mode-card" onclick="selectMode(\'timed\',this)"><div class="mode-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="mode-title">Timed Quiz</div><div class="mode-desc">'+(state.settings.timedSeconds||90)+'s/card · any topic · unlimited</div></div>'
     +'</div><div id="_modeOpts"></div>'
     +'<div style="display:flex;gap:12px;margin-top:24px">'
     +'<button class="btn btn-secondary" onclick="setView(\'dashboard\')">← Back</button>'
     +'<button class="btn btn-primary" onclick="startReviewFromSel()">Start Review</button></div>';
-  _selMode='srs';_cramTopic=null;_cramLevel=null;
+
+  _selMode=defMode;_cramTopic=null;_cramLevel=null;_timedTopic=null;_timedLevel=null;
+  // If SRS is done and Cram is the default, pre-render the Cram filter options
+  if(srsCompleted)selectMode('cram',c.querySelector('.mode-card.active'));
 }
 function selectMode(mode,el){
-  _selMode=mode;document.querySelectorAll('.mode-card').forEach(cc=>cc.classList.remove('active'));el.classList.add('active');
+  // SRS is once-per-day — clicking it when already done shows a message, doesn't change selection
+  if(mode==='srs'&&hasDoneSRSToday()){
+    showSnackbar('SRS already completed for today ✓ — choose another mode');
+    return;
+  }
+  _selMode=mode;document.querySelectorAll('.mode-card').forEach(cc=>cc.classList.remove('active'));
+  if(el)el.classList.add('active');
   const cont=document.getElementById('_modeOpts');if(!cont)return;
-  if(mode==='cram'){
+  if(mode==='cram'||mode==='timed'){
+    const isT=mode==='timed';
     const topics=getAllTopics().filter(t=>state.cards.some(cc=>cc.topicId===t.id));
     cont.innerHTML='<div class="section-title" style="margin-top:20px">Filter (optional)</div>'
       +'<div style="display:flex;gap:12px;flex-wrap:wrap">'
-      +'<select class="filter-select" onchange="_cramLevel=this.value||null">'
+      +'<select class="filter-select" onchange="'+(isT?'_timedLevel':'_cramLevel')+'=this.value||null">'
       +'<option value="">All Levels</option><option value="L1">Level I</option><option value="L2">Level II</option><option value="L3">Level III</option></select>'
-      +'<select class="filter-select" onchange="_cramTopic=this.value||null">'
+      +'<select class="filter-select" onchange="'+(isT?'_timedTopic':'_cramTopic')+'=this.value||null">'
       +'<option value="">All Topics</option>'+topics.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('')+'</select></div>';
   }else cont.innerHTML='';
 }
 function startReviewFromSel(){
+  // Safety check — SRS is once-per-day. This path shouldn't normally be
+  // reachable (the card is locked and selectMode guards it) but we defend
+  // here too in case of an unexpected state.
+  if(_selMode==='srs'&&hasDoneSRSToday()){
+    openModal(
+      '<div style="padding:24px;max-width:340px">'
+      +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">SRS Already Completed ✓</div>'
+      +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">'
+      +'You\'ve already done your SRS review for today. Your cards are scheduled — come back tomorrow!<br><br>'
+      +'Use <strong>Cram</strong>, <strong>Weak Cards</strong>, or <strong>Timed Quiz</strong> for extra practice.</p>'
+      +'<button class="btn btn-primary" onclick="closeModal()">Got it</button>'
+      +'</div>'
+    );
+    return;
+  }
   if(_selMode==='srs')startSession('srs');
   else if(_selMode==='cram')startSession('cram',{topicId:_cramTopic,level:_cramLevel});
   else if(_selMode==='weak')startSession('weak');
-  else if(_selMode==='timed')startSession('timed');
+  else if(_selMode==='timed')startSession('timed',{topicId:_timedTopic,level:_timedLevel});
 }
 
 // ── BROWSE CARDS ──────────────────────────────────────────────
@@ -2818,12 +2890,12 @@ function renderFSList(){
 }
 
 function _avgRet(){
-  // SRS-only: include 'srs' and 'timed' (same due-card deck, exam-pacing wrapper).
-  // Exclude 'cram' and 'weak' — both let you cherry-pick cards you already know
-  // well, which would inflate the good+easy rate and misrepresent true retention.
+  // SRS-only: Timed Quiz is now a standalone mode (draws from all cards like Cram),
+  // so only 'srs' sessions count toward the retention figure.
+  // Sessions with no mode field (pre-feature data) are assumed to be SRS.
   let g=0,t=0;
   state.sessions
-    .filter(s=>!s.mode||s.mode==='srs'||s.mode==='timed')
+    .filter(s=>!s.mode||s.mode==='srs')
     .forEach(s=>{
       g+=(s.ratings.good||0)+(s.ratings.easy||0);
       t+=(s.ratings.again||0)+(s.ratings.hard||0)+(s.ratings.good||0)+(s.ratings.easy||0);
