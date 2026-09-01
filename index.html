@@ -2599,10 +2599,24 @@ function renderProgress(c){
   const totSec=sessions.reduce((s,ss)=>s+(ss.durationSeconds||0),0);
   const avgRet=_avgRet(),mature=state.cards.filter(cc=>!cc.isNew&&cc.reps>=3).length;
   const topics=getAllTopics().filter(t=>state.cards.some(cc=>cc.topicId===t.id));
+
+  // ── SRS RETENTION via Ease Factor ─────────────────────────────
+  // The SM-2 ease factor (EF) is the best available per-card retention signal —
+  // SM-2 itself uses it to decide how quickly to space reviews.
+  // EF range: 1.3 (always forgotten) → 2.5 (mastered).
+  // Normalised to 0–100%: pct = (avgEF − 1.3) / 1.2 × 100
+  // Only non-new cards are included (isNew=false means at least 1 review done).
+  function _efPct(efVal){return Math.max(0,Math.min(100,Math.round((efVal-1.3)/1.2*100)));}
+
   const tRows=topics.map(t=>{
     const cards=state.cards.filter(cc=>cc.topicId===t.id);
-    const mat=cards.filter(cc=>!cc.isNew&&cc.reps>=3).length,pct=cards.length?Math.round(mat/cards.length*100):0;
-    return{t,cnt:cards.length,pct};
+    const reviewed=cards.filter(cc=>!cc.isNew);
+    const avgEF=reviewed.length
+      ?reviewed.reduce((s,cc)=>s+(cc.easeFactor||2.5),0)/reviewed.length
+      :null;
+    const pct=avgEF!==null?_efPct(avgEF):null;
+    const totalLapses=reviewed.reduce((s,cc)=>s+(cc.lapses||0),0);
+    return{t,cnt:cards.length,reviewed:reviewed.length,pct,avgEF,totalLapses};
   }).sort((a,b)=>b.cnt-a.cnt);
 
   const recentSessions=[...sessions].reverse().slice(0,10);
@@ -2611,16 +2625,16 @@ function renderProgress(c){
     +'<div class="view-subtitle">Your CFA study analytics</div><hr class="view-divider">'
     +'<div class="stats-grid">'
     +_sc(totRev.toLocaleString(),'Total Reviews','cards all time',null)
-    +_sc(avgRet+'%','Avg Retention','good+easy across SRS sessions','#10B981')
+    +_sc(avgRet+'%','Avg Retention','SRS + Timed sessions only','#10B981')
     +_sc(Math.round(totSec/3600)+'h','Study Time',Math.round(totSec/60)+' min total','#F59E0B')
     +_sc(mature,'Mature Cards','of '+state.cards.length+' total','#8B5CF6')
     +'</div>'
 
-    // "Maturity" = cards with reps≥3 (SM-2 graduated / mature).
-    // This is NOT the same as session retention (good+easy rate) — it measures
-    // how far through the SRS learning stages each card has progressed.
-    +'<div class="section-title">Maturity by Topic</div>'
-    +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">% of cards with ≥3 reviews (SM-2 mature)</div>'
+    // SRS Retention by Topic — based on SM-2 ease factor of reviewed cards.
+    // Higher % = higher average ease factor = SM-2 is scheduling these cards
+    // further apart = you're retaining them well.
+    +'<div class="section-title">SRS Retention by Topic</div>'
+    +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">Avg SM-2 ease factor of reviewed cards · EF 1.3 = 0% · EF 2.5 = 100%</div>'
     +_levelPills(_progTopicF.level,'_setProgTopicLevel')
     +(()=>{
       let rows=tRows;
@@ -2629,14 +2643,25 @@ function renderProgress(c){
         return lvlTopics.some(lt=>lt.id===t.id);
       });
       if(!rows.length)return'<p style="color:var(--text-3);font-size:13px;padding:12px 0">'+(tRows.length?'No topics match this level filter.':'Add cards with topics to see retention stats.')+'</p>';
-      return rows.map(({t,cnt,pct})=>
-        '<div class="topic-progress-row">'
-        +'<div class="topic-progress-name"><span class="topic-dot" style="background:'+t.color+';display:inline-block;margin-right:8px;vertical-align:middle"></span>'+esc(t.name.length>22?t.name.slice(0,22)+'…':t.name)+'</div>'
-        +'<div class="topic-progress-bar-wrap"><div class="topic-progress-bar" style="width:'+pct+'%;background:'+t.color+'"></div></div>'
-        +'<div class="topic-progress-pct" style="color:'+t.color+'">'+pct+'%</div>'
-        +'<div class="topic-progress-cnt">'+cnt+' cards</div>'
-        +'</div>'
-      ).join('');
+      return rows.map(({t,cnt,reviewed,pct,avgEF,totalLapses})=>{
+        const barPct=pct!==null?pct:0;
+        const barBg=pct!==null?t.color:'var(--border)';
+        const retLabel=pct!==null?pct+'%':'—';
+        const textCol=pct!==null?t.color:'var(--text-3)';
+        const efTip=avgEF?'Avg ease factor: '+avgEF.toFixed(2)+' · ':'';
+        const lapseChip=totalLapses>0
+          ?'<span style="font-size:11px;color:var(--text-3);margin-left:6px" title="Total lapses across all cards in this topic">'+totalLapses+' lapse'+(totalLapses!==1?'s':'')+'</span>'
+          :'';
+        const notStarted=reviewed===0
+          ?'<span style="font-size:11px;color:var(--text-3);margin-left:6px">not started</span>'
+          :'';
+        return'<div class="topic-progress-row">'
+          +'<div class="topic-progress-name"><span class="topic-dot" style="background:'+t.color+';display:inline-block;margin-right:8px;vertical-align:middle"></span>'+esc(t.name.length>22?t.name.slice(0,22)+'…':t.name)+'</div>'
+          +'<div class="topic-progress-bar-wrap"><div class="topic-progress-bar" style="width:'+barPct+'%;background:'+barBg+'"></div></div>'
+          +'<div class="topic-progress-pct" style="color:'+textCol+'" title="'+efTip+reviewed+' of '+cnt+' cards reviewed">'+retLabel+'</div>'
+          +'<div class="topic-progress-cnt">'+reviewed+'/'+cnt+' cards'+lapseChip+notStarted+'</div>'
+          +'</div>';
+      }).join('');
     })()
 
     +(()=>{
@@ -2647,21 +2672,30 @@ function renderProgress(c){
       const readings=[...new Set(rCards.map(c=>c.reading))].sort();
       const levelPills=_levelPills(_progReadF.level,'_setProgReadLevel',
         _progReadF.level?_topicDropdown(_progReadF.level,_progReadF.topicId,'_setProgReadTopic'):null);
-      if(!readings.length)return'<div class="section-title" style="margin-top:28px">Maturity by Reading</div>'
-        +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">% of cards with ≥3 reviews (SM-2 mature)</div>'
-        +levelPills
+      const emptyHeader='<div class="section-title" style="margin-top:28px">SRS Retention by Reading</div>'
+        +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">Avg SM-2 ease factor of reviewed cards per reading</div>'
+        +levelPills;
+      if(!readings.length)return emptyHeader
         +'<p style="color:var(--text-3);font-size:13px;padding:12px 0">No readings match this filter.</p>';
       const rows=readings.map(r=>{
         const rc=rCards.filter(c=>c.reading===r);
-        const mat=rc.filter(c=>!c.isNew&&c.reps>=3).length;
-        const pct=rc.length?Math.round(mat/rc.length*100):0;
-        return'<div class="reading-row"><div class="reading-row-name" title="'+esc(r)+'">'+esc(r.length>36?r.slice(0,36)+'…':r)+'</div>'
-          +'<div class="reading-bar-wrap"><div class="reading-bar-fill" style="width:'+pct+'%"></div></div>'
-          +'<div class="reading-pct" title="'+mat+' of '+rc.length+' cards mature">'+pct+'%</div><div class="reading-cnt">'+rc.length+' cards</div></div>';
+        const revd=rc.filter(c=>!c.isNew);
+        const avgEF=revd.length
+          ?revd.reduce((s,c)=>s+(c.easeFactor||2.5),0)/revd.length
+          :null;
+        const pct=avgEF!==null?_efPct(avgEF):null;
+        const totalLapses=revd.reduce((s,c)=>s+(c.lapses||0),0);
+        const efTip=avgEF?'Avg EF: '+avgEF.toFixed(2)+' · ':'';
+        const lapseStr=totalLapses>0?' · '+totalLapses+' lapse'+(totalLapses!==1?'s':''):'';
+        const notStarted=revd.length===0?' · not started':'';
+        return'<div class="reading-row">'
+          +'<div class="reading-row-name" title="'+esc(r)+'">'+esc(r.length>36?r.slice(0,36)+'…':r)+'</div>'
+          +'<div class="reading-bar-wrap"><div class="reading-bar-fill" style="width:'+(pct||0)+'%;'+(pct===null?'background:var(--border)':'')+'"></div></div>'
+          +'<div class="reading-pct" title="'+efTip+revd.length+' of '+rc.length+' reviewed'+lapseStr+'">'+(pct!==null?pct+'%':'—')+'</div>'
+          +'<div class="reading-cnt">'+revd.length+'/'+rc.length+' cards'+notStarted+'</div>'
+          +'</div>';
       });
-      return'<div class="section-title" style="margin-top:28px">Maturity by Reading</div>'
-        +'<div style="font-size:11.5px;color:var(--text-3);margin:-8px 0 10px">% of cards with ≥3 reviews (SM-2 mature)</div>'
-        +levelPills+rows.join('');
+      return emptyHeader+rows.join('');
     })()
     +'<div class="section-title" style="margin-top:28px">Study Activity</div>'+_renderHeatmapSection('_progHmGrid')
 
@@ -2784,8 +2818,16 @@ function renderFSList(){
 }
 
 function _avgRet(){
+  // SRS-only: include 'srs' and 'timed' (same due-card deck, exam-pacing wrapper).
+  // Exclude 'cram' and 'weak' — both let you cherry-pick cards you already know
+  // well, which would inflate the good+easy rate and misrepresent true retention.
   let g=0,t=0;
-  state.sessions.forEach(s=>{g+=(s.ratings.good||0)+(s.ratings.easy||0);t+=(s.ratings.again||0)+(s.ratings.hard||0)+(s.ratings.good||0)+(s.ratings.easy||0);});
+  state.sessions
+    .filter(s=>!s.mode||s.mode==='srs'||s.mode==='timed')
+    .forEach(s=>{
+      g+=(s.ratings.good||0)+(s.ratings.easy||0);
+      t+=(s.ratings.again||0)+(s.ratings.hard||0)+(s.ratings.good||0)+(s.ratings.easy||0);
+    });
   return t?Math.round(g/t*100):0;
 }
 
