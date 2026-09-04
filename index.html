@@ -1412,17 +1412,28 @@ function renderKatexSoon(){
 function getDueCards(){const t=todayISO();return state.cards.filter(c=>!c.isNew&&c.dueDate&&c.dueDate<=t);}
 function getNewCards(){return state.cards.filter(c=>c.isNew);}
 function getTodayNewCount(){
-  // Count cards introduced today — i.e., were new and got their first review today.
-  // reps===1 → rated Hard/Good/Easy (advanced one step)
-  // reps===0 → rated Again (reset, but still reviewed today for the first time)
-  // Bug fix: old code used reps===1 only, missing Again'd new cards and
-  // allowing the user to introduce more new cards than the daily limit intended.
+  // If no SRS session exists today (never done, or was deleted), return 0 so the
+  // full new-card allowance is available. Without this, deleting an SRS session
+  // would leave cards with lastReviewed=today counted against the limit even
+  // though the session that caused it no longer exists.
+  if(!hasDoneSRSToday())return 0;
   return state.cards.filter(c=>!c.isNew&&c.lastReviewed===todayISO()&&c.reps<=1).length;
 }
 function buildSRSDeck(){
   const nLim=state.settings.newCardsPerDay||20,rLim=state.settings.reviewCardsPerDay||100;
   const due=getDueCards().slice(0,rLim),newAvail=getNewCards().slice(0,Math.max(0,nLim-getTodayNewCount()));
-  const deck=[],rQ=[...due],nQ=[...newAvail];
+  // Fix C: if no SRS session exists today (was never started OR was deleted),
+  // also include cards that were reviewed today in a now-deleted session.
+  // Without this, deleting a session leaves cards with dueDate=tomorrow and
+  // isNew=false, making them invisible to both getDueCards() and getNewCards().
+  let recovered=[];
+  if(!hasDoneSRSToday()){
+    const dueIds=new Set([...due,...newAvail].map(c=>c.id));
+    recovered=state.cards.filter(c=>
+      !c.isNew&&c.lastReviewed===todayISO()&&!dueIds.has(c.id)
+    );
+  }
+  const deck=[],rQ=[...due,...recovered],nQ=[...newAvail];
   while(rQ.length||nQ.length){for(let i=0;i<5&&rQ.length;i++)deck.push(rQ.shift());if(nQ.length)deck.push(nQ.shift());}
   return deck;
 }
@@ -1684,11 +1695,32 @@ function toggleStar(id){const c=state.cards.find(c=>c.id===id);if(!c)return;c.st
 
 // ── DELETE SESSION ────────────────────────────────────────────
 function deleteSession(id){
-  const prev=[...state.sessions];
+  const sess=state.sessions.find(s=>s.id===id);
+  const prevSessions=[...state.sessions];
+  // Fix C: snapshot a copy of current card states so the undo action can
+  // fully restore them (not just the session record).
+  const prevCards=state.cards.map(c=>({...c}));
+
   state.sessions=state.sessions.filter(s=>s.id!==id);
+
+  // If the deleted session has a cardSnapshot, restore those card SM-2 fields
+  // so SRS cards are available again as if the session never happened.
+  if(sess?.cardSnapshot){
+    sess.cardSnapshot.forEach(snap=>{
+      const i=state.cards.findIndex(c=>c.id===snap.id);
+      if(i>=0)state.cards[i]={...state.cards[i],...snap};
+    });
+  }
+
   save();
   renderProgress(document.getElementById('mainContent'));
-  showSnackbar('Session deleted',()=>{state.sessions=prev;save();renderProgress(document.getElementById('mainContent'));});
+  showSnackbar('Session deleted',()=>{
+    // Undo: restore both the session record AND the card states
+    state.sessions=prevSessions;
+    state.cards=prevCards;
+    save();
+    renderProgress(document.getElementById('mainContent'));
+  });
 }
 
 // Tracks when this browser session started — used in startCloudSync to detect
@@ -1721,6 +1753,7 @@ let session={
   active:false,mode:'srs',queue:[],againQueue:[],done:[],current:null,
   flipped:false,hintVisible:false,ratings:{again:0,hard:0,good:0,easy:0},
   startTime:null,_timer:null,lastAction:null,
+  _questionTimeAccum:0,_questionStart:null, // question-only elapsed time tracking
   vigSubIdx:0,vigAllDone:false,
   essayText:'',essayRevealed:false,essayFeedback:null,essayFeedbackLoading:false,
   timedMode:false,timedSeconds:90,timedRemaining:90,timedExpired:false,_timedTimer:null,
@@ -1752,10 +1785,25 @@ function startSession(mode,opts={}){
   if(!deck.length){showSnackbar('No cards available for this mode');return;}
   clearInterval(session._timer);clearInterval(session._timedTimer);
   const isTimed=mode==='timed',ts=state.settings.timedSeconds||90;
+
+  // Fix C: snapshot SM-2 fields for all SRS-eligible cards before any ratings happen.
+  // Stored on the session record so deleteSession() can restore card states,
+  // making it possible to re-do a mistakenly-closed session from scratch.
+  const cardSnapshot=mode==='srs'
+    ?[...getDueCards(),...getNewCards()].map(c=>({
+        id:c.id,isNew:c.isNew,reps:c.reps,lapses:c.lapses,
+        interval:c.interval,easeFactor:c.easeFactor,
+        dueDate:c.dueDate,lastReviewed:c.lastReviewed
+      }))
+    :null;
+
   session={
     active:true,mode,queue:[...deck],againQueue:[],done:[],current:null,
     flipped:false,hintVisible:false,ratings:{again:0,hard:0,good:0,easy:0},
     startTime:Date.now(),_timer:null,lastAction:null,
+    // Fix A: track only time spent looking at questions, not answer-review time
+    _questionTimeAccum:0,_questionStart:null,
+    _cardSnapshot:cardSnapshot,
     vigSubIdx:0,vigAllDone:false,
     essayText:'',essayRevealed:false,essayFeedback:null,essayFeedbackLoading:false,
     timedMode:isTimed,timedSeconds:ts,timedRemaining:ts,timedExpired:false,_timedTimer:null,
@@ -1764,14 +1812,16 @@ function startSession(mode,opts={}){
   };
   document.getElementById('reviewOverlay').style.display='flex';
   document.body.style.overflow='hidden';
-  // FOCUS FIX: the button that launched this session (e.g. "Start Review") keeps
-  // browser focus after the overlay appears. Pressing Space would then fire a native
-  // click on that button (standard browser behaviour for focused <button> elements),
-  // re-invoking startSession() instead of flipping the card.
-  // Moving focus onto the overlay itself (tabindex="-1") captures keyboard events
-  // immediately so Space correctly routes to the flip handler from card one onward.
   requestAnimationFrame(()=>document.getElementById('reviewOverlay').focus());
-  session._timer=setInterval(()=>{const el=document.getElementById('reviewTimer');if(el)el.textContent=fmtTime(Math.floor((Date.now()-session.startTime)/1000));},1000);
+  // Fix A: display timer reads the question-time accumulator.
+  // When _questionStart is non-null the card is on the question side (timer running).
+  // When null the card is on the answer side (timer frozen at accumulated value).
+  // No need to stop/restart the interval — it always reads the right value.
+  session._timer=setInterval(()=>{
+    const el=document.getElementById('reviewTimer');if(!el)return;
+    const ms=session._questionTimeAccum+(session._questionStart?Date.now()-session._questionStart:0);
+    el.textContent=fmtTime(Math.floor(ms/1000));
+  },1000);
 
   // Pause the timed countdown when the user switches tabs; resume on return.
   // Without this, the timer keeps ticking in the background and silently
@@ -1812,6 +1862,7 @@ function _nextCard(){
   session.vigSubIdx=0;session.vigAllDone=false;
   session.essayText='';session.essayRevealed=false;session.essayFeedback=null;session.essayFeedbackLoading=false;
   session.timedExpired=false;session.timedRemaining=session.timedSeconds;
+  session._questionStart=Date.now(); // Fix A: question side starts — timer running
   _renderReviewCard();_updateReviewHeader();
   if(session.timedMode&&!session.flipped)_startTimedCountdown();
 }
@@ -1822,6 +1873,8 @@ function flipCard(){
   if(card&&card.type==='vignette'){_nextVigSubQ();return;}
   if(session.flipped)return;
   if(session.timedMode&&session._timedTimer){clearInterval(session._timedTimer);session._timedTimer=null;}
+  // Fix A: freeze question-time accumulator — display timer now shows frozen value
+  if(session._questionStart){session._questionTimeAccum+=Date.now()-session._questionStart;session._questionStart=null;}
   session.flipped=true;_renderReviewCard();
 }
 function _nextVigSubQ(){
@@ -1895,13 +1948,21 @@ function undoLastRating(){
   save();_renderReviewCard();_updateReviewHeader();showSnackbar('Rating undone ↩');
 }
 
+function _getFinalQuestionMs(){
+  // Finalize the question-time accumulator (adds any remaining question-side time)
+  if(session._questionStart){session._questionTimeAccum+=Date.now()-session._questionStart;session._questionStart=null;}
+  return session._questionTimeAccum;
+}
 function closeReview(){
   clearInterval(session._timer);
   clearInterval(session._timedTimer);
   if(_visibilityHandler){document.removeEventListener('visibilitychange',_visibilityHandler);_visibilityHandler=null;}
   if(session.done.length&&!session._sessionSaved){
-    const dur=Math.floor((Date.now()-session.startTime)/1000);
-    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
+    const dur=Math.floor(_getFinalQuestionMs()/1000);
+    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,
+      ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,
+      timedStats:session.timedMode?{...session.timedStats}:null,
+      cardSnapshot:session._cardSnapshot||null});
     save();
   }
   session.active=false;
@@ -1911,11 +1972,14 @@ function closeReview(){
 }
 function _endSession(){
   clearInterval(session._timer);
-  const dur=Math.floor((Date.now()-session.startTime)/1000);
+  const dur=Math.floor(_getFinalQuestionMs()/1000); // Fix A: question-only time
   clearInterval(session._timedTimer);
   if(_visibilityHandler){document.removeEventListener('visibilitychange',_visibilityHandler);_visibilityHandler=null;}
   if(session.done.length){
-    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,timedStats:session.timedMode?{...session.timedStats}:null});
+    state.sessions.push({id:uid('sess'),date:todayISO(),cardsReviewed:session.done.length,
+      ratings:{...session.ratings},durationSeconds:dur,mode:session.mode,
+      timedStats:session.timedMode?{...session.timedStats}:null,
+      cardSnapshot:session._cardSnapshot||null}); // Fix C: snapshot for restore on delete
     save();
   }
   session._sessionSaved=true;
@@ -2105,16 +2169,25 @@ function _renderSessionSummary(total,dur){
   const{again,hard,good,easy}=session.ratings,rev=again+hard+good+easy;
   const pct=rev?Math.round((good+easy)/rev*100):0,mins=Math.floor(dur/60),secs=dur%60;
   const pb=document.getElementById('reviewProgressBar');if(pb)pb.style.width='100%';
+  const isSRS=session.mode==='srs';
+  // Fix B: non-SRS sessions have no SM-2 ratings — hide the retention % and rating pills
+  // (they'd all show "0" which is meaningless for practice modes)
+  const statsLine=isSRS
+    ?'<p>Reviewed <strong>'+total+' card'+(total!==1?'s':'')+'</strong> in <strong>'+mins+'m '+secs+'s</strong> &nbsp;·&nbsp; <strong>'+pct+'%</strong> retention</p>'
+    :'<p>Practised <strong>'+total+' card'+(total!==1?'s':'')+'</strong> in <strong>'+mins+'m '+secs+'s</strong></p>';
+  const ratingsHtml=isSRS
+    ?'<div class="rating-summary">'
+      +'<div class="rating-pill" style="background:#FEE2E2;color:#991B1B">Again: '+again+'</div>'
+      +'<div class="rating-pill" style="background:#FEF3C7;color:#92400E">Hard: '+hard+'</div>'
+      +'<div class="rating-pill" style="background:#D1FAE5;color:#065F46">Good: '+good+'</div>'
+      +'<div class="rating-pill" style="background:rgba(var(--accent-rgb),.12);color:var(--accent)">Easy: '+easy+'</div>'
+      +'</div>'
+    :'';
   body.innerHTML='<div class="session-summary">'
     +'<div style="margin-bottom:16px;color:var(--accent)"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><path d="M13 7l4 4"/><path d="M14.5 6.5l3-3 2.5 2.5-3 3"/><path d="M5 14.5l-3 3 2.5 2.5 3-3"/><path d="M5.5 8.5l-2 2L7 14l2-2"/></svg></div>'
     +'<h2>Session Complete!</h2>'
-    +'<p>Reviewed <strong>'+total+' card'+(total!==1?'s':'')+'</strong> in <strong>'+mins+'m '+secs+'s</strong> &nbsp;·&nbsp; <strong>'+pct+'%</strong> retention</p>'
-    +'<div class="rating-summary">'
-    +'<div class="rating-pill" style="background:#FEE2E2;color:#991B1B">Again: '+again+'</div>'
-    +'<div class="rating-pill" style="background:#FEF3C7;color:#92400E">Hard: '+hard+'</div>'
-    +'<div class="rating-pill" style="background:#D1FAE5;color:#065F46">Good: '+good+'</div>'
-    +'<div class="rating-pill" style="background:rgba(var(--accent-rgb),.12);color:var(--accent)">Easy: '+easy+'</div>'
-    +'</div>'
+    +statsLine
+    +ratingsHtml
     +'<button class="btn btn-primary" onclick="closeReview()" style="min-width:160px">← Back to Dashboard</button>'
     +'</div>';
 }
