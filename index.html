@@ -2214,7 +2214,7 @@ function renderView(){
   if(v==='dashboard')renderDashboard(content);
   else if(v==='review-select')renderReviewSelect(content);
   else if(v==='browse')renderBrowse(content);
-  else if(v==='add-card')renderAddCardView(content);
+  else if(v==='add-card')renderAddCardView(content, true);
   else if(v==='formula-sheet')renderFormulaSheet(content);
   else if(v==='progress')renderProgress(content);
   else if(v==='settings')renderSettings(content);
@@ -2630,18 +2630,38 @@ function renderBrowseList(){
 
 // ── ADD / EDIT CARD ───────────────────────────────────────────
 let _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:'L1',topicId:null,imageData:null};
-function renderAddCardView(c){
+// Syncs the currently-visible Add Card form fields back into _cf.
+// Must be called before any renderAddCardView() re-render that isn't a full
+// navigation, otherwise the user's in-progress text is silently discarded.
+function _syncAddCardFields(){
+  const g=id=>document.getElementById(id);
+  if(g('_cfQ'))_cf.question=g('_cfQ').value;
+  if(g('_cfA'))_cf.answer=g('_cfA').value;
+  if(g('_cfHint'))_cf.hint=g('_cfHint').value;
+  if(g('_cfNotes'))_cf.notes=g('_cfNotes').value;
+  if(g('_cfCh'))_cf.chapter=g('_cfCh').value;
+  if(g('_cfRd'))_cf.reading=g('_cfRd').value;
+  if(g('_cfPass'))_cf.passage=g('_cfPass').value;
+}
+
+// fromNav=true  → called from the view router (fresh navigation) → reset _cf
+// fromNav=false → called for a within-page re-render (image upload, tab switch)
+//                 → keep _cf as-is so user's text and imageData are preserved
+function renderAddCardView(c, fromNav=false){
   const editId=state.ui.viewParams&&state.ui.viewParams.editId;
   const editCard=editId?state.cards.find(cc=>cc.id===editId):null;
   if(editCard){
+    // Edit mode: always reload from the saved card
     _cf={type:editCard.type||'qa',question:editCard.question||'',answer:editCard.answer||'',
       hint:editCard.hint||'',notes:editCard.notes||'',chapter:editCard.chapter||'',
       reading:editCard.reading||'',passage:editCard.passage||editCard.question||'',
       subQuestions:editCard.subQuestions||[],
       cfaLevel:editCard.cfaLevel||'L1',topicId:editCard.topicId||null,imageData:editCard.imageData||null};
-  }else if(!editId){
+  }else if(!editId&&fromNav){
+    // Fresh new-card navigation: reset _cf (but keep level/topic from last session)
     _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:null};
   }
+  // else: within-page re-render (image upload, tab switch) — keep _cf unchanged
   const isEdit=!!editCard,topics=CFA_TOPICS[_cf.cfaLevel]||CFA_TOPICS.L1;
   const typeHints={
     qa:'Classic question → answer format. Best for concepts and definitions.',
@@ -2728,7 +2748,7 @@ function renderAddCardView(c){
     +(_cf.imageData?'<img class="image-preview" src="'+_cf.imageData+'" alt="Card image"><br><span style="font-size:12px;color:var(--text-3)">Click to change image</span>'
       :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="margin-bottom:6px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><br>Click to attach image — yield curves, payoff diagrams, option graphs…')
     +'</div>'
-    +(_cf.imageData?'<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="_cf.imageData=null;renderAddCardView(document.getElementById(\'mainContent\'))">✕ Remove image</button>':'')
+    +(_cf.imageData?'<button class="btn btn-secondary btn-sm" style="margin-top:8px" type="button" onclick="_syncAddCardFields();_cf.imageData=null;renderAddCardView(document.getElementById(\'mainContent\'))">✕ Remove image</button>':'')
     +'</div>'
 
     // Actions
@@ -2741,18 +2761,21 @@ function renderAddCardView(c){
   renderKatexSoon();
 }
 function setCFType(t){
+  _syncAddCardFields(); // preserve user's typed text before re-render
   _cf.type=t;
   if(t==='vignette'&&(!_cf.subQuestions||!_cf.subQuestions.length))
     _cf.subQuestions=[{id:uid('sq'),question:'',answer:'',hint:''}];
   renderAddCardView(document.getElementById('mainContent'));
 }
 function _addSQ(){
+  _syncAddCardFields();
   if(!_cf.subQuestions)_cf.subQuestions=[];
   if(_cf.subQuestions.length>=8){showSnackbar('Maximum 8 sub-questions');return;}
   _cf.subQuestions.push({id:uid('sq'),question:'',answer:'',hint:''});
   renderAddCardView(document.getElementById('mainContent'));
 }
 function _removeSQ(i){
+  _syncAddCardFields();
   _cf.subQuestions.splice(i,1);
   renderAddCardView(document.getElementById('mainContent'));
 }
@@ -3194,10 +3217,15 @@ function handleImageUpload(file){
   reader.onload=e=>{
     const img=new Image();
     img.onload=()=>{
+      // Sync any text the user has typed into _cf BEFORE re-rendering.
+      // Without this, question/answer/etc. would be lost because renderAddCardView
+      // renders from _cf, not from the live DOM.
+      _syncAddCardFields();
       const canvas=document.createElement('canvas'),max=700;let w=img.width,h=img.height;
       if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
       canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
       _cf.imageData=canvas.toDataURL('image/jpeg',.78);
+      // fromNav=false: keep _cf as-is, just re-render to show the image preview
       renderAddCardView(document.getElementById('mainContent'));
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
