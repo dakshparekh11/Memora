@@ -1983,6 +1983,10 @@ function _endSession(){
     save();
   }
   session._sessionSaved=true;
+  // Null current so the header formula (done + queue + again + (current?1:0))
+  // gives the correct final total (done/done = N/N) instead of done/(done+1).
+  session.current=null;
+  _updateReviewHeader();
   _renderSessionSummary(session.done.length,dur);
 }
 function _updateReviewHeader(){
