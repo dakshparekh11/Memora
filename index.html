@@ -564,6 +564,7 @@ a:hover{text-decoration:underline;}
   cursor:pointer;
   transition:box-shadow .15s,transform .12s;
   position:relative;
+  overflow:hidden; /* prevent images wider than the card from breaking layout */
 }
 .review-card.no-click{cursor:default;}
 .review-card:not(.no-click):hover{box-shadow:var(--sh-lg);}
@@ -586,17 +587,31 @@ a:hover{text-decoration:underline;}
 }
 .review-card-content.formula-size{font-size:16px;}
 /* ── MULTI-IMAGE: review card ─────────────────────────────── */
+/* CSS Grid — auto-fits images into columns.
+   Each image is bounded to its grid cell so no natural-width overflow.
+   1 image → 1 column (full width).  2+ images → up to 2 per row. */
 .review-card-images{
-  display:flex;flex-wrap:wrap;gap:10px;
-  margin-top:var(--space-4);width:100%;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(0,1fr));
+  gap:8px;
+  margin-top:var(--space-4);
+  width:100%;
+  max-width:100%;
 }
 .review-card-img-thumb{
-  max-height:180px;max-width:100%;object-fit:contain;
-  border-radius:var(--r-md);border:1.5px solid var(--border);
-  cursor:zoom-in;transition:border-color .15s,transform .12s;
-  flex:0 0 auto;
+  /* width:100% forces the image to fill its grid cell,
+     object-fit:contain then scales it to fit within max-height */
+  width:100%;
+  max-height:200px;
+  object-fit:contain;
+  display:block;
+  border-radius:var(--r-md);
+  border:1.5px solid var(--border);
+  cursor:zoom-in;
+  transition:border-color .15s;
+  background:var(--surface); /* subtle bg while loading */
 }
-.review-card-img-thumb:hover{border-color:var(--accent);transform:scale(1.01);}
+.review-card-img-thumb:hover{border-color:var(--accent);}
 /* ── LIGHTBOX ─────────────────────────────────────────────── */
 .img-zoom-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.93);
