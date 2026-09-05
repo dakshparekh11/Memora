@@ -585,10 +585,74 @@ a:hover{text-decoration:underline;}
   white-space:pre-wrap;word-break:break-word;
 }
 .review-card-content.formula-size{font-size:16px;}
-.review-card-image{
-  max-width:100%;max-height:220px;object-fit:contain;
-  border-radius:var(--r-lg);margin-top:var(--space-4);
+/* ── MULTI-IMAGE: review card ─────────────────────────────── */
+.review-card-images{
+  display:flex;flex-wrap:wrap;gap:10px;
+  margin-top:var(--space-4);width:100%;
 }
+.review-card-img-thumb{
+  max-height:180px;max-width:100%;object-fit:contain;
+  border-radius:var(--r-md);border:1.5px solid var(--border);
+  cursor:zoom-in;transition:border-color .15s,transform .12s;
+  flex:0 0 auto;
+}
+.review-card-img-thumb:hover{border-color:var(--accent);transform:scale(1.01);}
+/* ── LIGHTBOX ─────────────────────────────────────────────── */
+.img-zoom-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.93);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;overflow:hidden;outline:none;
+}
+.img-zoom-img{
+  max-width:90vw;max-height:90vh;object-fit:contain;
+  transform-origin:center center;cursor:grab;
+  border-radius:6px;user-select:none;-webkit-user-drag:none;
+  transition:transform .08s ease;
+}
+.img-zoom-img.dragging{cursor:grabbing;}
+.img-zoom-close{
+  position:absolute;top:14px;right:14px;
+  background:rgba(255,255,255,.14);border:none;color:#fff;
+  font-size:18px;border-radius:50%;width:38px;height:38px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  z-index:10001;transition:background .15s;
+}
+.img-zoom-close:hover{background:rgba(255,255,255,.28);}
+.img-zoom-nav{
+  position:absolute;top:50%;transform:translateY(-50%);
+  background:rgba(255,255,255,.14);border:none;color:#fff;
+  font-size:26px;line-height:1;border-radius:50%;width:44px;height:44px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  z-index:10001;transition:background .15s;
+}
+.img-zoom-nav:hover{background:rgba(255,255,255,.28);}
+.img-zoom-prev{left:14px;}.img-zoom-next{right:14px;}
+.img-zoom-counter{
+  position:absolute;bottom:44px;left:50%;transform:translateX(-50%);
+  color:rgba(255,255,255,.7);font-size:13px;letter-spacing:.04em;
+}
+.img-zoom-hint{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  color:rgba(255,255,255,.38);font-size:11.5px;white-space:nowrap;pointer-events:none;
+}
+/* ── MULTI-IMAGE: add card gallery ───────────────────────── */
+.img-gallery{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.img-gallery-item{
+  position:relative;border-radius:var(--r-md);overflow:hidden;
+  border:1.5px solid var(--border);cursor:zoom-in;
+}
+.img-gallery-item img{
+  width:110px;height:88px;object-fit:cover;display:block;
+  transition:opacity .15s;
+}
+.img-gallery-item:hover img{opacity:.85;}
+.img-gallery-remove{
+  position:absolute;top:4px;right:4px;background:rgba(0,0,0,.65);
+  color:#fff;border:none;border-radius:50%;width:22px;height:22px;
+  font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;
+}
+.img-gallery-item:hover .img-gallery-remove{opacity:1;}
 .cloze-blank{
   display:inline-block;background:var(--accent);color:transparent;
   border-radius:var(--r-sm);padding:0 18px;font-weight:600;
@@ -1471,7 +1535,13 @@ function migrate(s){
     if(!c.subQuestions)c.subQuestions=[];
     if(!c.cfaLevel)c.cfaLevel='L1';if(!c.topicId)c.topicId=null;
     if(!c.tags)c.tags=[];if(c.starred===undefined)c.starred=false;
-    if(!c.imageData)c.imageData=null;if(!c.createdAt)c.createdAt=todayISO();
+    // Migrate imageData (single string) → images (array).
+    // Old cards have imageData; new cards use images[]. Handle both gracefully.
+    if(!c.images){
+      c.images=c.imageData?[c.imageData]:[];
+    }
+    c.imageData=undefined; // retire the old field
+    if(!c.createdAt)c.createdAt=todayISO();
   });
   s.sessions.forEach(s=>{if(!s.id)s.id=uid('sess');});
   return s;
@@ -1667,7 +1737,7 @@ function addCard(data){
     reading:data.reading||'',passage:data.passage||'',subQuestions:data.subQuestions||[],
     cfaLevel:data.cfaLevel||'L1',topicId:data.topicId||null,
     tags:[],starred:false,isNew:true,interval:1,easeFactor:2.5,reps:0,lapses:0,
-    dueDate:null,lastReviewed:null,imageData:data.imageData||null,createdAt:todayISO()
+    dueDate:null,lastReviewed:null,images:Array.isArray(data.images)?data.images:[],createdAt:todayISO()
   };
   state.cards.push(card);save();return card;
 }
@@ -2043,7 +2113,14 @@ function _renderReviewCard(){
   let content='';
   if(session.flipped){content=card.type==='cloze'?parseCloze(card.question,true):'<span class="katex-content">'+esc(card.answer)+'</span>';}
   else{content=card.type==='cloze'?parseCloze(card.question,false):'<span class="katex-content">'+esc(card.question)+'</span>';}
-  const imgHtml=card.imageData&&session.flipped?'<img class="review-card-image" src="'+card.imageData+'" alt="diagram">':'';
+  const cardImgs=card.images&&card.images.length?card.images:[];
+  // Images shown only on the answer side, as a separate block below the answer text
+  const imgBlockHtml=session.flipped&&cardImgs.length
+    ?'<div class="review-card-images">'
+      +cardImgs.map((src,i)=>'<img class="review-card-img-thumb" src="'+src+'" alt="Diagram '+(i+1)+' of '+cardImgs.length+'" onclick="_setZoomImgs(\'card\');openImageZoom('+i+')">')
+      .join('')
+      +'</div>'
+    :'';
   const chapterHtml=card.chapter?'<div style="font-size:11.5px;color:var(--text-3);margin-bottom:12px;font-weight:500;display:flex;align-items:center;gap:5px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'+esc(card.chapter)+'</div>':'';
   const hintArea=!session.flipped&&card.hint
     ?(session.hintVisible?'<div class="review-hint-text"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-right:5px;vertical-align:middle"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'+esc(card.hint)+'</div>':'<button class="review-hint-btn" onclick="showHint()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg> Show Hint</button>'):'';
@@ -2067,7 +2144,8 @@ function _renderReviewCard(){
     +'<div class="review-card-divider '+(session.flipped?'a-divider':'q-divider')+'"></div>'
     +'<div class="review-card-label '+(session.flipped?'a-label':'q-label')+'">'+(session.flipped?'ANSWER':'QUESTION')+'</div>'
     +chapterHtml
-    +'<div class="review-card-content'+(card.type==='formula'?' formula-size':'')+'">'+content+imgHtml+'</div>'
+    +'<div class="review-card-content'+(card.type==='formula'?' formula-size':'')+'">'+content+'</div>'
+    +imgBlockHtml
     +'</div>'
     +(hintArea?'<div>'+hintArea+'</div>':'')
     +(notesArea||'')
@@ -2629,7 +2707,7 @@ function renderBrowseList(){
 }
 
 // ── ADD / EDIT CARD ───────────────────────────────────────────
-let _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:'L1',topicId:null,imageData:null};
+let _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:'L1',topicId:null,images:[]};
 // Syncs the currently-visible Add Card form fields back into _cf.
 // Must be called before any renderAddCardView() re-render that isn't a full
 // navigation, otherwise the user's in-progress text is silently discarded.
@@ -2656,10 +2734,10 @@ function renderAddCardView(c, fromNav=false){
       hint:editCard.hint||'',notes:editCard.notes||'',chapter:editCard.chapter||'',
       reading:editCard.reading||'',passage:editCard.passage||editCard.question||'',
       subQuestions:editCard.subQuestions||[],
-      cfaLevel:editCard.cfaLevel||'L1',topicId:editCard.topicId||null,imageData:editCard.imageData||null};
+      cfaLevel:editCard.cfaLevel||'L1',topicId:editCard.topicId||null,images:editCard.images||[]};
   }else if(!editId&&fromNav){
     // Fresh new-card navigation: reset _cf (but keep level/topic from last session)
-    _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:null};
+    _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,images:[]};
   }
   // else: within-page re-render (image upload, tab switch) — keep _cf unchanged
   const isEdit=!!editCard,topics=CFA_TOPICS[_cf.cfaLevel]||CFA_TOPICS.L1;
@@ -2744,11 +2822,27 @@ function renderAddCardView(c, fromNav=false){
 
     // Image
     +'<div class="form-group"><label class="form-label">Image <span class="form-optional">(optional)</span></label>'
-    +'<div class="image-upload-area" onclick="document.getElementById(\'imageFileInput\').click()" role="button" tabindex="0" aria-label="Upload image">'
-    +(_cf.imageData?'<img class="image-preview" src="'+_cf.imageData+'" alt="Card image"><br><span style="font-size:12px;color:var(--text-3)">Click to change image</span>'
-      :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="margin-bottom:6px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><br>Click to attach image — yield curves, payoff diagrams, option graphs…')
-    +'</div>'
-    +(_cf.imageData?'<button class="btn btn-secondary btn-sm" style="margin-top:8px" type="button" onclick="_syncAddCardFields();_cf.imageData=null;renderAddCardView(document.getElementById(\'mainContent\'))">✕ Remove image</button>':'')
+    // ── Multi-image gallery ──────────────────────────────────────
+    +((_cf.images&&_cf.images.length)
+      ?'<div class="img-gallery">'
+        +_cf.images.map((src,i)=>
+          '<div class="img-gallery-item" onclick="_previewAddCardImg('+i+')" title="Click to zoom">'
+          +'<img src="'+src+'" alt="Image '+(i+1)+'">'
+          +'<button class="img-gallery-remove" type="button" title="Remove image" '
+          +'onclick="event.stopPropagation();_syncAddCardFields();_cf.images.splice('+i+',1);renderAddCardView(document.getElementById(\'mainContent\'))">✕</button>'
+          +'</div>'
+        ).join('')
+        +'</div>'
+      :'')
+    // Show "Add Image" button while under the 5-image limit
+    +((!_cf.images||_cf.images.length<5)
+      ?'<div class="image-upload-area" onclick="document.getElementById(\'imageFileInput\').click()" role="button" tabindex="0" aria-label="Upload image">'
+        +'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="margin-bottom:6px;opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><br>'
+        +(_cf.images&&_cf.images.length
+          ?'Add another image ('+(5-_cf.images.length)+' remaining)'
+          :'Click to attach image — yield curves, payoff diagrams, option graphs…')
+        +'</div>'
+      :'')
     +'</div>'
 
     // Actions
@@ -2796,12 +2890,12 @@ function saveCard(editId){
   }
   _savingCard=true;
   if(editId){
-    updateCard(editId,{type:_cf.type,question:_cf.passage||_cf.question,answer:_cf.answer,hint:_cf.hint,notes:_cf.notes,chapter:_cf.chapter,reading:_cf.reading||'',passage:_cf.passage||'',subQuestions:_cf.subQuestions||[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:_cf.imageData});
+    updateCard(editId,{type:_cf.type,question:_cf.passage||_cf.question,answer:_cf.answer,hint:_cf.hint,notes:_cf.notes,chapter:_cf.chapter,reading:_cf.reading||'',passage:_cf.passage||'',subQuestions:_cf.subQuestions||[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,images:_cf.images||[]});
     showSnackbar('Card updated ✓');
   }else{
     addCard({..._cf,question:_cf.passage||_cf.question});showSnackbar('Card added ✓');
   }
-  _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,imageData:null};
+  _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,images:[]};
   // Reset on next microtask — prevents double-submit within the same event loop tick
   // without the risk of a stale timer permanently blocking saves (the old 1500ms approach)
   Promise.resolve().then(()=>{_savingCard=false;});
@@ -3209,7 +3303,88 @@ function handleCSVImport(file){
   };reader.readAsText(file);
 }
 
-// ── IMAGE UPLOAD ──────────────────────────────────────────────
+// ── IMAGE ZOOM LIGHTBOX ───────────────────────────────────────
+// Global image list for the current lightbox session.
+// Populated by _setZoomImgs() before openImageZoom() is called.
+let _zoomImgs=[];
+function _setZoomImgs(source){
+  // 'card' = session.current.images | 'form' = _cf.images
+  _zoomImgs=source==='card'
+    ?(session.current&&session.current.images?[...session.current.images]:[])
+    :(_cf.images?[..._cf.images]:[]);
+}
+function _previewAddCardImg(idx){
+  // Called from the Add Card gallery thumbnails
+  _setZoomImgs('form');openImageZoom(idx);
+}
+
+function openImageZoom(startIdx){
+  const imgs=_zoomImgs;
+  if(!imgs||!imgs.length)return;
+  let idx=Math.max(0,Math.min(imgs.length-1,startIdx||0));
+  let scale=1,panX=0,panY=0,dragging=false,dragSX=0,dragSY=0;
+
+  const overlay=document.createElement('div');
+  overlay.className='img-zoom-overlay';overlay.tabIndex=-1;
+  document.body.appendChild(overlay);requestAnimationFrame(()=>overlay.focus());
+
+  function applyTransform(){
+    const img=overlay.querySelector('.img-zoom-img');
+    if(img)img.style.transform='scale('+scale+') translate('+panX/scale+'px,'+panY/scale+'px)';
+  }
+  function render(){
+    scale=1;panX=0;panY=0;
+    const multiNav=imgs.length>1
+      ?'<button class="img-zoom-nav img-zoom-prev" id="_zzPrev">&#8249;</button>'
+       +'<button class="img-zoom-nav img-zoom-next" id="_zzNext">&#8250;</button>'
+       +'<div class="img-zoom-counter">'+(idx+1)+' / '+imgs.length+'</div>'
+      :'';
+    overlay.innerHTML=
+      '<button class="img-zoom-close" id="_zzClose">&#x2715;</button>'
+      +'<img class="img-zoom-img" src="'+imgs[idx]+'" alt="Image '+(idx+1)+' of '+imgs.length+'" draggable="false">'
+      +multiNav
+      +'<div class="img-zoom-hint">Scroll · zoom &nbsp;|&nbsp; Drag · pan &nbsp;|&nbsp; ← → &nbsp; navigate &nbsp;|&nbsp; ESC · close</div>';
+    overlay.querySelector('#_zzClose').addEventListener('click',e=>{e.stopPropagation();overlay.remove();});
+    const prev=overlay.querySelector('#_zzPrev');
+    const next=overlay.querySelector('#_zzNext');
+    if(prev)prev.addEventListener('click',e=>{e.stopPropagation();if(idx>0){idx--;render();}});
+    if(next)next.addEventListener('click',e=>{e.stopPropagation();if(idx<imgs.length-1){idx++;render();}});
+  }
+
+  // Close on backdrop click
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  // Keyboard: ESC close, arrows navigate
+  overlay.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){overlay.remove();}
+    else if(e.key==='ArrowLeft'&&idx>0){idx--;render();}
+    else if(e.key==='ArrowRight'&&idx<imgs.length-1){idx++;render();}
+    else if(e.key==='+'||e.key==='='){scale=Math.min(6,scale+.25);applyTransform();}
+    else if(e.key==='-'){scale=Math.max(.5,scale-.25);if(scale===1){panX=0;panY=0;}applyTransform();}
+  });
+  // Mouse wheel zoom
+  overlay.addEventListener('wheel',e=>{
+    e.preventDefault();
+    scale=Math.max(.5,Math.min(6,scale+(e.deltaY<0?.15:-.15)));
+    if(scale<=1){panX=0;panY=0;}
+    applyTransform();
+  },{passive:false});
+  // Drag to pan when zoomed in
+  overlay.addEventListener('mousedown',e=>{
+    if(e.target.classList.contains('img-zoom-img')&&scale>1){
+      dragging=true;dragSX=e.clientX-panX;dragSY=e.clientY-panY;
+      e.target.classList.add('dragging');e.preventDefault();
+    }
+  });
+  overlay.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    panX=e.clientX-dragSX;panY=e.clientY-dragSY;applyTransform();
+  });
+  overlay.addEventListener('mouseup',()=>{
+    dragging=false;const img=overlay.querySelector('.img-zoom-img');
+    if(img)img.classList.remove('dragging');
+  });
+  render();
+}
 function handleImageUpload(file){
   if(!file||!file.type.startsWith('image/')){showSnackbar('Please select an image file');return;}
   if(file.size>5*1024*1024){showSnackbar('Image too large — max 5MB');return;}
@@ -3217,15 +3392,14 @@ function handleImageUpload(file){
   reader.onload=e=>{
     const img=new Image();
     img.onload=()=>{
-      // Sync any text the user has typed into _cf BEFORE re-rendering.
-      // Without this, question/answer/etc. would be lost because renderAddCardView
-      // renders from _cf, not from the live DOM.
       _syncAddCardFields();
-      const canvas=document.createElement('canvas'),max=700;let w=img.width,h=img.height;
+      if(!Array.isArray(_cf.images))_cf.images=[];
+      if(_cf.images.length>=5){showSnackbar('Maximum 5 images per card');return;}
+      const canvas=document.createElement('canvas'),max=900;let w=img.width,h=img.height;
       if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
       canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
-      _cf.imageData=canvas.toDataURL('image/jpeg',.78);
-      // fromNav=false: keep _cf as-is, just re-render to show the image preview
+      _cf.images.push(canvas.toDataURL('image/jpeg',.82));
+      // fromNav=false: keep _cf as-is, just re-render to show the updated gallery
       renderAddCardView(document.getElementById('mainContent'));
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
@@ -3301,7 +3475,7 @@ function setAccountText(t){const el=document.getElementById('syncAccount');if(el
 function scheduleCloudSync(){
   if(!_uid||_applyingRemote)return;
   clearTimeout(_syncTimer);setSyncStatus('Syncing…');
-  const payload={...state,cards:state.cards.map(c=>({...c,imageData:undefined}))};
+  const payload={...state,cards:state.cards.map(c=>({...c,images:[]}))};
   _syncTimer=setTimeout(()=>{
     _userDoc(_uid).set({data:JSON.stringify(payload),updatedAt:Date.now()})
       .then(()=>setSyncStatus('Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})))
@@ -3318,20 +3492,20 @@ function startCloudSync(uid){
   // potentially overwrite an in-progress local rating with stale remote data.
   _syncUnsub=_userDoc(uid).onSnapshot(async doc=>{
     if(!doc.exists){
-      _userDoc(uid).set({data:JSON.stringify({...state,cards:state.cards.map(c=>({...c,imageData:undefined}))}),updatedAt:Date.now()});
+      _userDoc(uid).set({data:JSON.stringify({...state,cards:state.cards.map(c=>({...c,images:[]}))}),updatedAt:Date.now()});
       setSyncStatus('Synced · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));return;
     }
     let remote;try{remote=JSON.parse(doc.data().data);}catch(e){return;}
     _applyingRemote=true;
     const localCards=state.cards; // save before migrate so we can merge
-    const imgMap={};state.cards.forEach(c=>{if(c.imageData)imgMap[c.id]=c.imageData;});
+    const imgMap={};state.cards.forEach(c=>{if(c.images&&c.images.length)imgMap[c.id]=c.images;});
     state=migrate(remote);
     // Per-card merge: prefer whichever copy has the newer lastReviewed date.
     // Without this, an active review session on Device A would be silently
     // overwritten by Device B's snapshot even for cards the user just rated.
     state.cards=_mergeCards(localCards,state.cards);
     // Restore image data (not synced via Firestore due to size limits)
-    state.cards.forEach(c=>{if(imgMap[c.id])c.imageData=imgMap[c.id];});
+    state.cards.forEach(c=>{if(imgMap[c.id])c.images=imgMap[c.id];});
     // Await the IDB write before releasing the lock — prevents scheduleCloudSync()
     // from uploading stale data during the async write window.
     try{await idbSet(DB_KEY,state);}catch(e){console.error('IDB sync write failed',e);}
