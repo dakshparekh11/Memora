@@ -3410,10 +3410,19 @@ function handleImageUpload(file){
       _syncAddCardFields();
       if(!Array.isArray(_cf.images))_cf.images=[];
       if(_cf.images.length>=5){showSnackbar('Maximum 5 images per card');return;}
-      const canvas=document.createElement('canvas'),max=900;let w=img.width,h=img.height;
+      // Larger cap (1400px) so formulas and charts remain readable at full size
+      const canvas=document.createElement('canvas'),max=1400;let w=img.width,h=img.height;
       if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
       canvas.width=w;canvas.height=h;canvas.getContext('2d').drawImage(img,0,0,w,h);
-      _cf.images.push(canvas.toDataURL('image/jpeg',.82));
+      // Quality strategy:
+      //   PNG  → lossless, perfect sharpness — ideal for screenshots, formulas, charts
+      //   JPEG → used only when PNG would exceed ~1 MB (typically large photographs)
+      // Base64 string is ~1.37× the binary size, so 1 400 000 chars ≈ 1 MB binary.
+      const pngData=canvas.toDataURL('image/png');
+      const finalData=pngData.length>1400000
+        ?canvas.toDataURL('image/jpeg',0.92) // high-quality JPEG fallback for large photos
+        :pngData;
+      _cf.images.push(finalData);
       // fromNav=false: keep _cf as-is, just re-render to show the updated gallery
       renderAddCardView(document.getElementById('mainContent'));
     };img.src=e.target.result;
