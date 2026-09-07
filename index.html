@@ -2728,13 +2728,15 @@ let _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',
 // navigation, otherwise the user's in-progress text is silently discarded.
 function _syncAddCardFields(){
   const g=id=>document.getElementById(id);
+  // IDs must match the actual rendered element IDs in renderAddCardView
   if(g('_cfQ'))_cf.question=g('_cfQ').value;
+  if(g('_cfQ')&&_cf.type==='vignette')_cf.passage=g('_cfQ').value; // vignette reuses _cfQ for passage
   if(g('_cfA'))_cf.answer=g('_cfA').value;
   if(g('_cfHint'))_cf.hint=g('_cfHint').value;
   if(g('_cfNotes'))_cf.notes=g('_cfNotes').value;
-  if(g('_cfCh'))_cf.chapter=g('_cfCh').value;
-  if(g('_cfRd'))_cf.reading=g('_cfRd').value;
-  if(g('_cfPass'))_cf.passage=g('_cfPass').value;
+  if(g('_cfChap'))_cf.chapter=g('_cfChap').value;   // was _cfCh (wrong)
+  if(g('_cfReading'))_cf.reading=g('_cfReading').value; // was _cfRd (wrong)
+  // Sub-question fields are synced live via oninput — no DOM read needed here
 }
 
 // fromNav=true  → called from the view router (fresh navigation) → reset _cf
@@ -3476,7 +3478,7 @@ document.addEventListener('keydown',e=>{
         '<div style="padding:24px;max-width:340px">'
         +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Exit Review?</div>'
         +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">'
-        +(session.done.length>0?'Progress so far (<strong>'+session.done.length+' card'+(session.done.length!==1?'s':'')+'</strong> rated) will be saved.':'No cards have been rated yet.')+'</p>'
+        +(session.done.length>0?'Progress so far (<strong>'+session.done.length+' card'+(session.done.length!==1?'s':'')+'</strong> reviewed) will be saved.':'No cards have been reviewed yet.')+'</p>'
         +'<div style="display:flex;gap:10px">'
         +'<button class="btn btn-secondary" onclick="closeModal()">Keep Reviewing</button>'
         +'<button class="btn btn-primary" onclick="closeModal();closeReview()">Exit</button>'
@@ -3620,7 +3622,7 @@ function wireEvents(){
         '<div style="padding:24px;max-width:340px">'
         +'<div style="font-size:16px;font-weight:700;margin-bottom:10px">Exit Review?</div>'
         +'<p style="font-size:14px;color:var(--text-2);margin-bottom:20px">'
-        +'Progress so far (<strong>'+session.done.length+' card'+(session.done.length!==1?'s':'')+'</strong> rated) will be saved.</p>'
+        +'Progress so far (<strong>'+session.done.length+' card'+(session.done.length!==1?'s':'')+'</strong> reviewed) will be saved.</p>'
         +'<div style="display:flex;gap:10px">'
         +'<button class="btn btn-secondary" onclick="closeModal()">Keep Reviewing</button>'
         +'<button class="btn btn-primary" onclick="closeModal();closeReview()">Exit</button>'
