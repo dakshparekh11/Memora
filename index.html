@@ -1701,7 +1701,7 @@ async function connectBackupFile(){
   }
 }
 function _loadExistingBackup(raw){
-  try{const p=JSON.parse(raw);state=migrate(p);renderAll();writeBackupFile();}
+  try{const p=JSON.parse(raw);state=migrate(p);save();renderAll();writeBackupFile();}
   catch(e){showSnackbar('Could not load backup — file may be corrupted.');}
 }
 async function handleConnectBackupClick(){
@@ -2743,8 +2743,10 @@ function _syncAddCardFields(){
 function renderAddCardView(c, fromNav=false){
   const editId=state.ui.viewParams&&state.ui.viewParams.editId;
   const editCard=editId?state.cards.find(cc=>cc.id===editId):null;
-  if(editCard){
-    // Edit mode: always reload from the saved card
+  if(editCard&&fromNav){
+    // Edit mode FIRST LOAD only — populate _cf from the saved card.
+    // Subsequent re-renders (type change, image upload, sub-question add/remove)
+    // must keep _cf as-is; _syncAddCardFields() ensures form values are already saved.
     _cf={type:editCard.type||'qa',question:editCard.question||'',answer:editCard.answer||'',
       hint:editCard.hint||'',notes:editCard.notes||'',chapter:editCard.chapter||'',
       reading:editCard.reading||'',passage:editCard.passage||editCard.question||'',
@@ -2754,7 +2756,7 @@ function renderAddCardView(c, fromNav=false){
     // Fresh new-card navigation: reset _cf (but keep level/topic from last session)
     _cf={type:'qa',question:'',answer:'',hint:'',notes:'',chapter:'',reading:'',passage:'',subQuestions:[],cfaLevel:_cf.cfaLevel,topicId:_cf.topicId,images:[]};
   }
-  // else: within-page re-render (image upload, tab switch) — keep _cf unchanged
+  // else: within-page re-render (image, tab switch, type change) — keep _cf unchanged
   const isEdit=!!editCard,topics=CFA_TOPICS[_cf.cfaLevel]||CFA_TOPICS.L1;
   const typeHints={
     qa:'Classic question → answer format. Best for concepts and definitions.',
