@@ -650,7 +650,35 @@ a:hover{text-decoration:underline;}
   position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
   color:rgba(255,255,255,.38);font-size:11.5px;white-space:nowrap;pointer-events:none;
 }
-/* ── MULTI-IMAGE: add card gallery ───────────────────────── */
+/* ── KATEX LIVE PREVIEW (Add Card form) ──────────────────── */
+.katex-preview-panel{
+  background:rgba(var(--accent-rgb),.05);
+  border:1px solid rgba(var(--accent-rgb),.18);
+  border-radius:var(--r-md);
+  padding:11px 14px;
+  margin-top:5px;
+  min-height:38px;
+  font-size:14px;
+  line-height:1.75;
+  color:var(--text);
+  word-break:break-word;
+  overflow-x:auto;
+}
+.katex-preview-panel:empty::before{content:'Nothing to preview yet — start typing above';color:var(--text-3);font-size:12.5px;}
+.katex-preview-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;padding:2px 9px;
+  border-radius:99px;border:1px solid var(--border);
+  background:transparent;color:var(--text-3);
+  cursor:pointer;margin-left:8px;
+  vertical-align:middle;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.katex-preview-btn:hover{color:var(--accent);border-color:var(--accent);}
+.katex-preview-btn.active{
+  color:var(--accent);border-color:var(--accent);
+  background:rgba(var(--accent-rgb),.1);
+}
 .img-gallery{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
 .img-gallery-item{
   position:relative;border-radius:var(--r-md);overflow:hidden;
@@ -2742,6 +2770,74 @@ function _syncAddCardFields(){
 // fromNav=true  → called from the view router (fresh navigation) → reset _cf
 // fromNav=false → called for a within-page re-render (image upload, tab switch)
 //                 → keep _cf as-is so user's text and imageData are preserved
+// ── KATEX LIVE PREVIEW ───────────────────────────────────────
+// _attachKatexPreviews() is called after every renderAddCardView().
+// It finds every textarea.form-input in the form and injects:
+//   • A "Preview" toggle button into the preceding form-label
+//   • A .katex-preview-panel below the textarea that renders live KaTeX on input
+
+function _toggleKPreview(panelId){
+  const panel=document.getElementById(panelId);if(!panel)return;
+  const show=panel.style.display==='none';
+  panel.style.display=show?'block':'none';
+  document.querySelectorAll('[data-kp="'+panelId+'"]')
+    .forEach(b=>b.classList.toggle('active',show));
+  if(show){
+    // Render existing content immediately when panel is first opened
+    const ta=panel.previousElementSibling;
+    _updateKPreview(panelId,ta&&ta.tagName==='TEXTAREA'?ta.value:'');
+  }
+}
+function _updateKPreview(panelId,value){
+  const panel=document.getElementById(panelId);
+  if(!panel||panel.style.display==='none')return;
+  // textContent safely escapes HTML; renderMathInElement then processes text nodes
+  panel.textContent=value||'';
+  if(typeof renderMathInElement==='undefined')return;
+  try{
+    renderMathInElement(panel,{
+      delimiters:[
+        {left:'$$',right:'$$',display:true},
+        {left:'$',right:'$',display:false},
+        {left:'\\(',right:'\\)',display:false},
+        {left:'\\[',right:'\\]',display:true}
+      ],throwOnError:false
+    });
+  }catch(e){}
+}
+function _attachKatexPreviews(){
+  const cont=document.getElementById('mainContent');if(!cont)return;
+  const allTAs=Array.from(cont.querySelectorAll('textarea.form-input'));
+  allTAs.forEach((ta,idx)=>{
+    // Stable panel ID: prefer textarea's own id, fall back to index
+    const panelId='_kp_'+(ta.id?ta.id:'sq'+idx);
+    // Preview panel inserted immediately after the textarea
+    const panel=document.createElement('div');
+    panel.id=panelId;
+    panel.className='katex-preview-panel katex-content';
+    panel.style.display='none';
+    ta.insertAdjacentElement('afterend',panel);
+    // Toggle button — inject into the preceding .form-label when present,
+    // otherwise add a small right-aligned row above the textarea
+    const btn=document.createElement('button');
+    btn.type='button';btn.className='katex-preview-btn';
+    btn.setAttribute('data-kp',panelId);
+    btn.title='Preview KaTeX · inline: $x^2$  display: $$\\frac{a}{b}$$';
+    btn.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:-1px"><path d="M3 12h3l3-9 4 18 3-9h5"/></svg> Preview';
+    btn.onclick=()=>_toggleKPreview(panelId);
+    const prevEl=ta.previousElementSibling;
+    if(prevEl&&(prevEl.classList.contains('form-label')||prevEl.tagName==='LABEL')){
+      prevEl.appendChild(btn);
+    }else{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;justify-content:flex-end;margin-bottom:3px';
+      row.appendChild(btn);ta.insertAdjacentElement('beforebegin',row);
+    }
+    // Live update listener — additive on top of any existing oninput attribute
+    ta.addEventListener('input',()=>_updateKPreview(panelId,ta.value));
+  });
+}
+
 function renderAddCardView(c, fromNav=false){
   const editId=state.ui.viewParams&&state.ui.viewParams.editId;
   const editCard=editId?state.cards.find(cc=>cc.id===editId):null;
@@ -2872,6 +2968,8 @@ function renderAddCardView(c, fromNav=false){
     +'</div></div>';
 
   renderKatexSoon();
+  // Attach KaTeX live-preview panels to all textareas in the form
+  _attachKatexPreviews();
 }
 function setCFType(t){
   _syncAddCardFields(); // preserve user's typed text before re-render
