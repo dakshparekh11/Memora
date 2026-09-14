@@ -564,7 +564,9 @@ a:hover{text-decoration:underline;}
   cursor:pointer;
   transition:box-shadow .15s,transform .12s;
   position:relative;
-  overflow:hidden; /* prevent images wider than the card from breaking layout */
+  overflow-x:hidden;              /* contain wide images without clipping tall content */
+  overflow-y:auto;                /* long answers scroll inside the card */
+  max-height:calc(100vh - 200px); /* cap so card never overflows the overlay */
 }
 .review-card.no-click{cursor:default;}
 .review-card:not(.no-click):hover{box-shadow:var(--sh-lg);}
@@ -581,6 +583,19 @@ a:hover{text-decoration:underline;}
 }
 .review-card-divider.q-divider{background:var(--accent);}
 .review-card-divider.a-divider{background:var(--success);}
+/* ← Question back-button in the ANSWER label — timer stays frozen on re-flip */
+.review-unflip-btn{
+  display:inline-flex;align-items:center;
+  font-size:10.5px;font-weight:600;
+  padding:2px 9px;margin-left:10px;
+  border-radius:99px;
+  border:1px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.12);
+  color:inherit;cursor:pointer;
+  vertical-align:middle;
+  transition:background .15s;
+}
+.review-unflip-btn:hover{background:rgba(255,255,255,.28);}
 .review-card-content{
   font-size:18px;line-height:1.65;flex:1;color:var(--text);font-weight:400;
   white-space:pre-wrap;word-break:break-word;
@@ -1979,6 +1994,17 @@ function _nextCard(){
   _renderReviewCard();_updateReviewHeader();
   if(session.timedMode&&!session.flipped)_startTimedCountdown();
 }
+// unflipCard — shows the question side again after the answer has been revealed.
+// Timer behaviour: _questionStart is intentionally NOT set here. The time spent
+// on this card's question side is already locked in _questionTimeAccum from when
+// flipCard() ran. Re-flipping neither restarts nor resumes the timer — it stays
+// frozen until _nextCard() sets _questionStart=Date.now() for the next card.
+function unflipCard(){
+  if(!session.active||!session.flipped)return;
+  session.flipped=false;
+  session.hintVisible=false;
+  _renderReviewCard();
+}
 function flipCard(){
   if(!session.active)return;
   const card=session.current;
@@ -2185,7 +2211,11 @@ function _renderReviewCard(){
     +'<div class="review-topic-badge" style="background:'+tColor+'">'+esc(tName)+' · '+esc(card.cfaLevel||'L1')+'</div>'
     +'<div class="review-card'+(session.flipped?' no-click':'')+'" onclick="'+(session.flipped?'':'flipCard()')+'" role="button">'
     +'<div class="review-card-divider '+(session.flipped?'a-divider':'q-divider')+'"></div>'
-    +'<div class="review-card-label '+(session.flipped?'a-label':'q-label')+'">'+(session.flipped?'ANSWER':'QUESTION')+'</div>'
+    +'<div class="review-card-label '+(session.flipped?'a-label':'q-label')+'">'
+    +(session.flipped
+      ?'ANSWER<button class="review-unflip-btn" onclick="event.stopPropagation();unflipCard()" title="Back to question — timer stays paused">← Question</button>'
+      :'QUESTION')
+    +'</div>'
     +chapterHtml
     +'<div class="review-card-content'+(card.type==='formula'?' formula-size':'')+'">'+content+'</div>'
     +imgBlockHtml
@@ -2896,7 +2926,7 @@ function renderAddCardView(c, fromNav=false){
       +'<button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="_addSQ()">+ Add Sub-question</button></div>'
     :
       '<div class="form-group"><label class="form-label" for="_cfQ">'+(_cf.type==='formula'?'Formula — Front':_cf.type==='essay'?'Essay Prompt — Front':'Question — Front')+'</label>'
-      +'<textarea class="form-input" id="_cfQ" placeholder="'+qPH[_cf.type||'qa']+'" oninput="_cf.question=this.value;_updateFPreview()" aria-required="true">'+esc(_cf.question)+'</textarea>'
+      +'<textarea class="form-input" id="_cfQ" placeholder="'+qPH[_cf.type||'qa']+'" oninput="_cf.question=this.value;_cf.passage=this.value;_updateFPreview()" aria-required="true">'+esc(_cf.question)+'</textarea>'
       +(_cf.type==='formula'?'<div class="katex-preview katex-content" id="_fPreview" aria-label="Formula preview">'+esc(_cf.question)+'</div>':'')
       +'</div>'
       +'<div class="form-group"><label class="form-label" for="_cfA">'+(_cf.type==='formula'?'Explanation — Back':_cf.type==='essay'?'Model Answer / Marking Guide — Back':'Answer — Back')+(_cf.type==='cloze'?' <span class="form-optional">(optional for cloze)</span>':'')+'</label>'
@@ -3569,6 +3599,7 @@ document.addEventListener('keydown',e=>{
       else if(e.key==='2'){e.preventDefault();rateCard('hard');}
       else if(e.key==='3'){e.preventDefault();rateCard('good');}
       else if(e.key==='4'){e.preventDefault();rateCard('easy');}
+      else if(e.key==='q'||e.key==='Q'){e.preventDefault();unflipCard();}
       else if(e.key==='z'&&!e.ctrlKey&&!e.metaKey){e.preventDefault();undoLastRating();}
     }
     if(e.code==='Escape'){
