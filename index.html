@@ -545,7 +545,13 @@ a:hover{text-decoration:underline;}
 
 .review-body{
   flex:1;overflow-y:auto;display:flex;flex-direction:column;
-  align-items:center;padding:var(--space-5) var(--space-5) var(--space-8);gap:var(--space-4);
+  align-items:center;
+  padding:var(--space-7) var(--space-5) var(--space-8);
+  gap:var(--space-5);
+  /* Center the badge + card + action trio vertically when there is room.
+     'safe center' falls back to flex-start when content overflows so
+     the top of a long card is never hidden behind the header. */
+  justify-content:safe center;
 }
 
 .review-topic-badge{
@@ -556,17 +562,17 @@ a:hover{text-decoration:underline;}
 
 /* The card itself */
 .review-card{
-  width:100%;max-width:600px;
+  width:100%;max-width:700px;
   background:var(--panel-bg);border:1px solid var(--border);
-  border-radius:var(--r-2xl);padding:36px;
+  border-radius:var(--r-2xl);padding:40px 52px;
   box-shadow:var(--sh-md);min-height:200px;
   display:flex;flex-direction:column;
   cursor:pointer;
   transition:box-shadow .15s,transform .12s;
   position:relative;
-  overflow-x:hidden;              /* contain wide images without clipping tall content */
-  overflow-y:auto;                /* long answers scroll inside the card */
-  max-height:calc(100vh - 200px); /* cap so card never overflows the overlay */
+  overflow-x:hidden;
+  overflow-y:auto;
+  max-height:calc(100vh - 200px);
 }
 .review-card.no-click{cursor:default;}
 .review-card:not(.no-click):hover{box-shadow:var(--sh-lg);}
@@ -1110,7 +1116,7 @@ textarea.form-input{min-height:96px;}
   .rating-buttons{gap:var(--space-1);}
   .rating-btn{min-width:60px;padding:10px var(--space-1);font-size:12px;}
   .rating-btn .r-label{font-size:12px;}
-  .review-card{padding:var(--space-5);}
+  .review-card{padding:28px 24px;max-height:calc(100vh - 160px);}
   .review-card-content{font-size:16px;}
   .mode-grid{flex-direction:column;}
   .browse-toolbar{flex-wrap:wrap;}
